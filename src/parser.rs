@@ -1,10 +1,11 @@
 use crate::token::Token;
 use crate::expression::*;
+use crate::statement::*;
 
 use std::iter::Peekable;
 use std::vec::IntoIter;
 
-type Program = Vec<Box<dyn Expression>>;
+type Program = Vec<Box<dyn Statement>>;
 
 pub struct Parser {
     input: Peekable<IntoIter<Token>>,
@@ -13,19 +14,19 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
-        let program = Vec::new() ;
+        let program = Vec::new();
         Parser { input: tokens.into_iter().peekable(), program}
     }
 
-    pub fn parse(&mut self) -> &Program {
+    pub fn parse(&mut self) -> &mut Program {
         loop {
-            let expr = self.expression();
-            self.program.push(expr);
+            let stmt = self.statement();
+            self.program.push(stmt);
             if let None = self.peek() {
                 break;
             }
         }
-        &self.program
+        &mut self.program
     }
 
     fn peek(&mut self) -> Option<&Token> {
@@ -43,6 +44,26 @@ impl Parser {
         }
     }
 
+    fn statement(&mut self) -> Box<dyn Statement> {
+        let next = self.peek().unwrap();
+        match next {
+            Token::Var => {
+                self.consume();
+                // TODO multi var
+                let var = self.consume().unwrap();
+                if let Token::Identifier(ident) = var {
+                    self.expect(&Token::Assign);
+                    let expr = self.expression();
+
+                    return Box::new(DeclarationStatement { variables: vec![ident], initializer: Some(expr) });
+                } else {
+                    panic!("stmt paininik");
+                }
+            },
+            _ => return Box::new(ExpressionStatement { expr: self.expression() })
+        }
+    }
+
     fn expression(&mut self) -> Box<dyn Expression> {
         // let token = self.consume().unwrap();
         // match token {
@@ -54,7 +75,7 @@ impl Parser {
         self.addition()
     }
 
-    fn assignment(&mut self, identifier: String) -> Box<AssignmentExpression> {
+    fn _assignment(&mut self, identifier: String) -> Box<AssignmentExpression> {
         self.expect(&Token::Assign);
         let value = self.expression();
         return Box::new(AssignmentExpression { identifier: identifier.clone(), value: value })
@@ -82,7 +103,7 @@ impl Parser {
     }
 
     fn multiplication(&mut self) -> Box<dyn Expression> {
-        let left = self.number();
+        let left = self.factor();
 
         let next = self.peek();
 
@@ -101,16 +122,31 @@ impl Parser {
         return left;
     }
 
-    fn number(&mut self) -> Box<NumberExpression> {
-        let num = self.consume();
-        if let Some(token) = num {
-            if let Token::Number(x) = token {
-                return Box::new(NumberExpression { value: x });
-            } else {
-                panic!("expected number, got {:?}", token)
+    fn factor(&mut self) -> Box<dyn Expression> {
+        let next = self.consume().unwrap();
+
+        match next {
+            Token::Number(value) => Box::new(NumberExpression { value }),
+            Token::Identifier(identifier) => Box::new(VariableExpression { identifier }),
+            Token::LeftParen => {
+                let expr = self.expression();
+                self.expect(&Token::RightParen);
+                expr
             }
-        } else {
-            panic!("EOF while parsing add")
+            _ => panic!("Not a factor: {:?}", next)
         }
     }
+
+    // fn number(&mut self, x: f64) -> Box<NumberExpression> {
+    //     let num = self.consume();
+    //     if let Some(token) = num {
+    //         if let Token::Number(x) = token {
+    //             return Box::new(NumberExpression { value: x });
+    //         } else {
+    //             panic!("expected number, got {:?}", token)
+    //         }
+    //     } else {
+    //         panic!("EOF while parsing add")
+    //     }
+    // }
 }

@@ -7,7 +7,10 @@ pub enum Token {
     Minus,
     Star,
     Assign,
-    LineBreak,
-    Slash
+    // LineBreak,
+    Slash,
+    Var,
+    LeftParen,
+    RightParen
 }
 

@@ -38,10 +38,12 @@ impl Scanner {
             '*' => Token::Star,
             '=' => Token::Assign,
             '/' => Token::Slash,
-            '\n' => Token::LineBreak,
+            '(' => Token::LeftParen,
+            ')' => Token::RightParen,
+            //'\n' => Token::LineBreak,
             'A'..='Z' | 'a'..='z' | '_' => self.word(next),
             '0'..='9' => self.number(next),
-            ' ' | '\r' => self.next_token(),
+            ' ' | '\r' | '\n' => self.next_token(),
             _ => panic!("Unexpected {}", next)  
         }
     }
@@ -56,7 +58,10 @@ impl Scanner {
             }
         }
 
-        // TODO check keywords
+        // TODO better keyword check
+        if &s == "var" {
+            return Token::Var
+        }
         Token::Identifier(s)
     }
 
