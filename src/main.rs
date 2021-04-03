@@ -18,12 +18,11 @@ fn main() {
 
     let input = fs::read_to_string(file_name).unwrap();
 
-    //let input = String::from("var x = 3 * 3 var y = 4 / 3 x * y");
     let mut scanner = Scanner::new(input);
 
     let tokens = scanner.scan();
 
-    // println!("{:?}\n-----", tokens);
+    println!("{:?}\n-----", tokens);
 
     let mut parser = Parser::new(tokens);
 

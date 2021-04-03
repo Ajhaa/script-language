@@ -26,6 +26,30 @@ impl Expression for VariableExpression {
     }
 }
 
+pub struct ConditionExpression {
+    pub left: Box<dyn Expression>,
+    pub right: Box<dyn Expression>,
+    pub operator: Token
+}
+
+impl Expression for ConditionExpression {
+    fn eval(&self, env: &mut Environment) -> ScriptValue {
+        let left = self.left.eval(env);
+        let right = self.right.eval(env);
+        let value = match self.operator {
+            Token::Equals => left == right,
+            Token::NotEquals => left != right,
+            Token::Lesser => left < right,
+            Token::Greater => left > right,
+            Token::EqLesser => left <= right,
+            Token::EqGreater => left >= right,
+            _ => panic!("Not a condition operator: {:?}", self.operator)
+        };
+
+        if value {1.0} else {0.0}
+    }
+}
+
 pub struct AdditionExpression {
     pub left: Box<dyn Expression>,
     pub right: Box<dyn Expression>,

@@ -6,11 +6,24 @@ pub enum Token {
     Plus,
     Minus,
     Star,
+    Not,
     Assign,
+    Equals,
+    NotEquals,
+    Greater,
+    Lesser,
+    EqGreater,
+    EqLesser,
     // LineBreak,
     Slash,
     Var,
+    If,
+    Else,
+    LeftBracket,
+    RightBracket,
     LeftParen,
-    RightParen
+    RightParen,
+    // TODO better solution,
+    Nothing
 }
 

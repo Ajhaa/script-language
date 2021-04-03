@@ -55,12 +55,40 @@ impl Parser {
                     self.expect(&Token::Assign);
                     let expr = self.expression();
 
-                    return Box::new(DeclarationStatement { variables: vec![ident], initializer: Some(expr) });
+                    Box::new(DeclarationStatement { variables: vec![ident], initializer: Some(expr) })
                 } else {
                     panic!("stmt paininik");
                 }
             },
-            _ => return Box::new(ExpressionStatement { expr: self.expression() })
+            Token::If => {
+                self.consume();
+                let condition = self.expression();
+                let if_body = self.statement();
+
+                let else_body = if let Some(Token::Else) = self.peek() {
+                    self.consume();
+                    Some(self.statement())
+                } else {
+                    None
+                };
+
+                Box::new(IfStatement { condition, if_body, else_body })
+            },
+            Token::LeftBracket => {
+                self.consume();
+                let mut body = Vec::new();
+                while let Some(token) = self.peek() {
+                    if token == &Token::RightBracket {
+                        self.consume();
+                        break;
+                    }
+                    let stmt = self.statement();
+                    body.push(stmt);
+                }
+
+                Box::new(BlockStatement { body })
+            }
+            _ => Box::new(ExpressionStatement { expr: self.expression() })
         }
     }
 
@@ -72,13 +100,38 @@ impl Parser {
         //     _ => panic!("Not implemented")
         // }
 
-        self.addition()
+        self.condition()
     }
 
     fn _assignment(&mut self, identifier: String) -> Box<AssignmentExpression> {
         self.expect(&Token::Assign);
         let value = self.expression();
         return Box::new(AssignmentExpression { identifier: identifier.clone(), value: value })
+    }
+
+    fn condition(&mut self) -> Box<dyn Expression> {
+        let left = self.addition();
+
+        let next = self.peek();
+
+        if let Some(token) = next {
+            match token {
+                Token::Equals => (),
+                Token::NotEquals => (),
+                Token::Greater => (),
+                Token::Lesser => (),
+                Token::EqGreater => (),
+                Token::EqLesser => (),
+                _ => return left
+            }
+
+            let operator = self.consume().unwrap();
+
+            let right = self.condition();
+            return Box::new(ConditionExpression{ left, right, operator });
+        }
+        
+        return left;
     }
 
     fn addition(&mut self) -> Box<dyn Expression> {
