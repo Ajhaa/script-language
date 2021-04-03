@@ -115,10 +115,20 @@ impl<'a> Parser<'a> {
 
                 Box::new(WhileStatement { condition, body })
             },
-            // Token::Func => {
-            //     self.expect(&Token::LeftParen);
+            Token::Func => {
+                let next = self.skip(2);
+                if let Some(Token::Identifier(ident)) = next {
+                    let name = ident.to_owned();
+                    self.expect(Token::LeftParen);
+                    // params
+                    self.expect(Token::RightParen);
+                    let body = self.statement();
+                    Box::new(FunctionStatement { name, params: Vec::new(), body })
+                } else {
+                    panic!("Unexpected {:?} while parsing function", next)
+                }
 
-            // },
+            },
             Token::LeftBracket => {
                 self.advance();
                 let mut body = Vec::new();

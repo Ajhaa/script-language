@@ -67,9 +67,9 @@ impl Statement for WhileStatement {
 }
 
 pub struct FunctionStatement {
-    name: String,
-    params: Vec<String>,
-    body: Box<dyn Statement>
+    pub name: String,
+    pub params: Vec<String>,
+    pub body: Box<dyn Statement>
 }
 
 impl Statement for FunctionStatement {
