@@ -17,12 +17,15 @@ pub enum Token {
     // LineBreak,
     Slash,
     Var,
+    Func,
     If,
     Else,
+    While,
     LeftBracket,
     RightBracket,
     LeftParen,
     RightParen,
+    Comma,
     // TODO better solution,
     Nothing
 }

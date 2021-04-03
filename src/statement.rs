@@ -25,6 +25,18 @@ impl Statement for DeclarationStatement {
     }
 }
 
+pub struct AssignmentStatement {
+    pub identifier: String,
+    pub expr: Box<dyn Expression>
+}
+
+impl Statement for AssignmentStatement {
+    fn exec(&self, env: &mut Environment) {
+        let value = self.expr.eval(env);
+        env.put(&self.identifier, Some(value));
+    }
+} 
+
 pub struct IfStatement {
     pub condition: Box<dyn Expression>,
     pub if_body: Box<dyn Statement>,
@@ -38,6 +50,31 @@ impl Statement for IfStatement {
         } else if let Some(stmt) = &self.else_body {
             stmt.exec(env);
         }
+    }
+}
+
+pub struct WhileStatement {
+    pub condition: Box<dyn Expression>,
+    pub body: Box<dyn Statement>,
+}
+
+impl Statement for WhileStatement {
+    fn exec(&self, env: &mut Environment) {
+        while self.condition.eval(env) != 0.0 {
+            self.body.exec(env);
+        }
+    }
+}
+
+pub struct FunctionStatement {
+    name: String,
+    params: Vec<String>,
+    body: Box<dyn Statement>
+}
+
+impl Statement for FunctionStatement {
+    fn exec(&self, env: &mut Environment) {
+        // env.function(name, params, body)
     }
 }
 

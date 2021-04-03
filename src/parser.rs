@@ -7,15 +7,20 @@ use std::vec::IntoIter;
 
 type Program = Vec<Box<dyn Statement>>;
 
-pub struct Parser {
-    input: Peekable<IntoIter<Token>>,
-    program: Program
+pub struct Parser<'a> {
+    input: Peekable<IntoIter<&'a Token>>,
+    program: Program,
+    current: Option<&'a Token>
 }
 
-impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Parser {
+impl<'a> Parser<'a> {
+    pub fn new(tokens: &'a Vec<Token>) -> Parser<'a> {
         let program = Vec::new();
-        Parser { input: tokens.into_iter().peekable(), program}
+        let mut refs = Vec::new();
+        for token in tokens {
+            refs.push(token);
+        }
+        Parser { input: refs.into_iter().peekable(), program, current: None }
     }
 
     pub fn parse(&mut self) -> &mut Program {
@@ -29,36 +34,50 @@ impl Parser {
         &mut self.program
     }
 
-    fn peek(&mut self) -> Option<&Token> {
+    fn peek(&mut self) -> Option<&&Token> {
         return self.input.peek();
     }
 
-    fn consume(&mut self) -> Option<Token> {
-        return self.input.next();
+    fn consume(&mut self) {
+        self.current = self.input.next();
     }
 
-    fn expect(&mut self, value: &Token) {
-        let val = &self.consume().unwrap();
-        if val != value {
-            panic!("Token apua");
+    fn expect(&mut self, value: Token) {
+        self.consume();
+        if self.current.unwrap() != &value {
+            panic!("Expected {:?}, got {:?}", value, self.current.unwrap());
         }
     }
 
     fn statement(&mut self) -> Box<dyn Statement> {
-        let next = self.peek().unwrap();
-        match next {
+        self.consume();
+        match self.current.unwrap() {
             Token::Var => {
-                self.consume();
                 // TODO multi var
-                let var = self.consume().unwrap();
+                self.consume();
+                let var = self.current.unwrap();
                 if let Token::Identifier(ident) = var {
-                    self.expect(&Token::Assign);
+                    self.expect(Token::Assign);
+                    self.consume();
                     let expr = self.expression();
 
-                    Box::new(DeclarationStatement { variables: vec![ident], initializer: Some(expr) })
+                    Box::new(DeclarationStatement { variables: vec![ident.to_owned()], initializer: Some(expr) })
                 } else {
                     panic!("stmt paininik");
                 }
+            },
+            Token::Identifier(identifier) => {
+                //let identifier = ident.to_owned();
+                if let Some(Token::Assign) = self.peek() {
+                    self.consume();
+                    self.consume();
+                    let expr = self.expression();
+
+                    Box::new(AssignmentStatement { identifier: identifier.to_owned(), expr })
+                } else {
+                    Box::new(ExpressionStatement { expr: self.expression() })
+                }
+                
             },
             Token::If => {
                 self.consume();
@@ -74,11 +93,22 @@ impl Parser {
 
                 Box::new(IfStatement { condition, if_body, else_body })
             },
-            Token::LeftBracket => {
+            Token::While => {
                 self.consume();
+                let condition = self.expression();
+                let body = self.statement();
+
+                Box::new(WhileStatement { condition, body })
+            }
+            // Token::Func => {
+            //     self.consume();
+            //     self.expect(&Token::LeftParen);
+
+            // },
+            Token::LeftBracket => {
                 let mut body = Vec::new();
                 while let Some(token) = self.peek() {
-                    if token == &Token::RightBracket {
+                    if token == &&Token::RightBracket {
                         self.consume();
                         break;
                     }
@@ -88,25 +118,14 @@ impl Parser {
 
                 Box::new(BlockStatement { body })
             }
-            _ => Box::new(ExpressionStatement { expr: self.expression() })
+            _ => {
+                Box::new(ExpressionStatement { expr: self.expression() })
+            }
         }
     }
 
     fn expression(&mut self) -> Box<dyn Expression> {
-        // let token = self.consume().unwrap();
-        // match token {
-        //     Token::Identifier(ident) => self.assignment(ident),
-        //     Token::Number(x) => Box::new(NumberExpression { value: x.parse().unwrap() }),
-        //     _ => panic!("Not implemented")
-        // }
-
         self.condition()
-    }
-
-    fn _assignment(&mut self, identifier: String) -> Box<AssignmentExpression> {
-        self.expect(&Token::Assign);
-        let value = self.expression();
-        return Box::new(AssignmentExpression { identifier: identifier.clone(), value: value })
     }
 
     fn condition(&mut self) -> Box<dyn Expression> {
@@ -125,8 +144,10 @@ impl Parser {
                 _ => return left
             }
 
-            let operator = self.consume().unwrap();
+            self.consume();
+            let operator = self.current.unwrap().clone();
 
+            self.consume();
             let right = self.condition();
             return Box::new(ConditionExpression{ left, right, operator });
         }
@@ -146,8 +167,10 @@ impl Parser {
                 _ => return left
             }
 
-            let operator = self.consume().unwrap();
+            self.consume();
+            let operator = self.current.unwrap().clone();
 
+            self.consume();
             let right = self.addition();
             return Box::new(AdditionExpression{ left, right, operator });
         }
@@ -166,8 +189,11 @@ impl Parser {
                 Token::Slash => (),
                 _ => return left
             }
-            let operator = self.consume().unwrap();
 
+            self.consume();
+            let operator = self.current.unwrap().clone();
+
+            self.consume();
             let right = self.multiplication();
             return Box::new(MultiplicationExpression{ left, right, operator });
         }
@@ -176,14 +202,15 @@ impl Parser {
     }
 
     fn factor(&mut self) -> Box<dyn Expression> {
-        let next = self.consume().unwrap();
+        let next = self.current.unwrap();
 
         match next {
-            Token::Number(value) => Box::new(NumberExpression { value }),
-            Token::Identifier(identifier) => Box::new(VariableExpression { identifier }),
+            Token::Number(value) => Box::new(NumberExpression { value: *value }),
+            Token::Identifier(identifier) => Box::new(VariableExpression { identifier: identifier.to_owned() }),
             Token::LeftParen => {
+                self.consume();
                 let expr = self.expression();
-                self.expect(&Token::RightParen);
+                self.expect(Token::RightParen);
                 expr
             }
             _ => panic!("Not a factor: {:?}", next)

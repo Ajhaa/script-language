@@ -86,16 +86,19 @@ impl Expression for MultiplicationExpression {
     }
 }
 
-pub struct AssignmentExpression {
-    pub identifier: String,
-    pub value: Box<dyn Expression>
-}
+// pub struct AssignmentExpression {
+//     pub left: Box<dyn Expression>,
+//     pub right: Box<dyn Expression>
+// }
 
-impl Expression for AssignmentExpression {
-    fn eval(&self, env: &mut Environment) -> ScriptValue {
-        let val = self.value.eval(env);
-        env.put(&self.identifier, Some(val));
+// impl Expression for AssignmentExpression {
+//     fn eval(&self, env: &mut Environment) -> ScriptValue {
+//         if let VariableExpression = self.left {
 
-        val
-    }
-}
+//         }
+//         // let val = self.expr.eval(env);
+//         // env.put(&self.identifier, Some(val));
+
+//         // val
+//     }
+// }

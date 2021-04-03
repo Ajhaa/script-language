@@ -7,22 +7,24 @@ use std::iter::FromIterator;
 use std::collections::HashMap;
 
 
-pub struct Scanner {
+pub struct Scanner<'a> {
     input: Peekable<IntoIter<char>>,
     tokens: Vec<Token>,
-    keywords: HashMap<String, Token>
+    keywords: HashMap<&'a str, Token>
 }
 
-impl Scanner {
-    pub fn new(string: String) -> Scanner {
+impl<'a> Scanner<'a> {
+    pub fn new(string: String) -> Scanner<'a> {
         let chars: Vec<char> = string.chars().collect(); 
         Scanner { 
             tokens: Vec::new(), 
             input: chars.into_iter().peekable(),
             keywords: HashMap::<_,_>::from_iter(array::IntoIter::new([
-                ("var".to_owned(), Token::Var), 
-                ("if".to_owned(), Token::If),
-                ("else".to_owned(), Token::Else)
+                ("var", Token::Var), 
+                ("if", Token::If),
+                ("else", Token::Else),
+                ("fn", Token::Func),
+                ("while", Token::While)
             ]))
         }
     }
@@ -59,6 +61,7 @@ impl Scanner {
             ')' => Token::RightParen,
             '{' => Token::LeftBracket,
             '}' => Token::RightBracket,
+            ',' => Token::Comma,
             '=' => {
                 if let Some('=') = self.peek() {
                     self.consume();
@@ -115,7 +118,7 @@ impl Scanner {
             }
         }
 
-        if let Some(keyword) = self.keywords.get(&s) {
+        if let Some(keyword) = self.keywords.get(&*s) {
             keyword.clone()
         } else {
             Token::Identifier(s)
