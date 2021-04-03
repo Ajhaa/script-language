@@ -24,7 +24,7 @@ fn main() {
 
     println!("{:?}\n-----", tokens);
 
-    let mut parser = Parser::new(&tokens);
+    let mut parser = Parser::new(tokens);
 
     let program = parser.parse();
 
