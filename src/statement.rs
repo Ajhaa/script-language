@@ -14,13 +14,13 @@ impl Statement for DeclarationStatement {
     fn exec(&self, env: &mut Environment) {
         
         let value = if let Some(expr) = &self.initializer {
-            Some(expr.eval(env))
+            expr.eval(env)
         } else {
-            None
+            ScriptValue::None
         };
 
         for var in &self.variables {
-            env.put(&var, value);
+            env.put(&var, value.clone());
         }
     }
 }
@@ -33,7 +33,7 @@ pub struct AssignmentStatement {
 impl Statement for AssignmentStatement {
     fn exec(&self, env: &mut Environment) {
         let value = self.expr.eval(env);
-        env.put(&self.identifier, Some(value));
+        env.put(&self.identifier, value);
     }
 } 
 
@@ -45,7 +45,7 @@ pub struct IfStatement {
 
 impl Statement for IfStatement {
     fn exec(&self, env: &mut Environment) {
-        if self.condition.eval(env) != 0.0 {
+        if let ScriptValue::Boolean(true) = self.condition.eval(env) {
             self.if_body.exec(env);
         } else if let Some(stmt) = &self.else_body {
             stmt.exec(env);
@@ -60,7 +60,7 @@ pub struct WhileStatement {
 
 impl Statement for WhileStatement {
     fn exec(&self, env: &mut Environment) {
-        while self.condition.eval(env) != 0.0 {
+        while let ScriptValue::Boolean(true) = self.condition.eval(env) {
             self.body.exec(env);
         }
     }

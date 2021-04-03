@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::expression::ScriptValue;
 
 pub struct Environment {
-    pub variables: HashMap<String, Option<ScriptValue>>
+    pub variables: HashMap<String, ScriptValue>
 }
 
 impl Environment {
@@ -10,11 +10,11 @@ impl Environment {
         Environment { variables: HashMap::new() }
     }
 
-    pub fn put(&mut self, key: &str, val: Option<ScriptValue>) {
+    pub fn put(&mut self, key: &str, val: ScriptValue) {
         self.variables.insert(key.to_owned(), val);
     }
 
-    pub fn get(&mut self, key: &str) -> Option<&Option<ScriptValue>> {
+    pub fn get(&mut self, key: &str) -> Option<&ScriptValue> {
         self.variables.get(key)
     }
 }
