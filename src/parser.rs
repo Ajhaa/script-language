@@ -260,7 +260,10 @@ impl Parser {
         let next = self.consume().unwrap();
 
         match next {
-            Token::Number(value) => Box::new(NumberExpression { value: *value }),
+            Token::Number(value) => Box::new(ScriptValue::Number(*value)),
+            Token::String(string) => Box::new(ScriptValue::String(string.to_owned())),
+            Token::Boolean(b) => Box::new(ScriptValue::Boolean(*b)),
+            Token::None => Box::new(ScriptValue::None),
             Token::Identifier(identifier) => Box::new(VariableExpression { identifier: identifier.to_owned() }),
             Token::LeftParen => {
                 let expr = self.expression();

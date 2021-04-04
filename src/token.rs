@@ -3,6 +3,9 @@
 pub enum Token {
     Identifier(String),
     Number(f64),
+    String(String),
+    Boolean(bool),
+    None,
     Plus,
     Minus,
     Star,

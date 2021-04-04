@@ -31,22 +31,35 @@ impl ScriptValue {
     }
 
     fn boolean(&self, other: ScriptValue, operator: Token) -> ScriptValue {
-        match (self, &other) {
+        let result = match (self, &other) {
             (ScriptValue::Number(left), ScriptValue::Number(right)) => {
-                let result = match operator {
+                match operator {
                     Token::Equals => left == right,
                     Token::NotEquals => left != right,
                     Token::Lesser => left < right,
                     Token::Greater => left > right,
                     Token::EqLesser => left <= right,
                     Token::EqGreater => left >= right,
-                    _ => panic!("Impossible compare")
-                };
-
-                ScriptValue::Boolean(result)
+                    _ => panic!("Impossible boolean operation")
+                }
             },
+            (ScriptValue::Boolean(left), ScriptValue::Boolean(right)) => {
+                match operator {
+                    Token::Equals => left == right,
+                    Token::NotEquals => left != right,
+                    _ => panic!("Impossible boolean operation")
+                }
+            }
             _ => panic!("Cannot compare {:?} and {:?}", self, other)
-        }
+        };
+
+        ScriptValue::Boolean(result)
+    }
+}
+
+impl Expression for ScriptValue {
+    fn eval(&self, _env: &mut Environment) -> ScriptValue {
+        self.clone()
     }
 }
 
@@ -57,7 +70,7 @@ impl fmt::Display for ScriptValue {
             ScriptValue::Number(n) => write!(f, "{}", n),
             ScriptValue::Boolean(b) => write!(f, "{}", b),
             ScriptValue::String(s) => write!(f, "{}", s),
-            ScriptValue::None => write!(f, "None"),
+            ScriptValue::None => write!(f, "null"),
         }        
     }
 }
@@ -65,15 +78,21 @@ impl fmt::Display for ScriptValue {
 pub trait Expression {
     fn eval(&self, env: &mut Environment) -> ScriptValue;
 }
-pub struct NumberExpression {
-    pub value: f64
-}
+// pub struct ValueExpression {
+//     pub value: ScriptValue
+// }
 
-impl Expression for NumberExpression {
-    fn eval(&self, _env: &mut Environment) -> ScriptValue {
-        ScriptValue::Number(self.value)
-    }
-}
+// impl Expression for ValueExpression {
+//     fn eval(&self, _env: &mut Environment) -> ScriptValue {
+//         self.value
+//     }
+// }
+
+// impl ValueExpression {
+//     fn number(num: f64) -> ValueExpression {
+//         ValueExpression { value: ScriptValue::Number(num) }
+//     }
+// }
 
 pub struct VariableExpression {
     pub identifier: String

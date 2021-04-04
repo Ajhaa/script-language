@@ -24,7 +24,10 @@ impl<'a> Scanner<'a> {
                 ("if", Token::If),
                 ("else", Token::Else),
                 ("fn", Token::Func),
-                ("while", Token::While)
+                ("while", Token::While),
+                ("true", Token::Boolean(true)),
+                ("false", Token::Boolean(false)),
+                ("null", Token::None)
             ]))
         }
     }
@@ -97,6 +100,7 @@ impl<'a> Scanner<'a> {
             //'\n' => Token::LineBreak,
             'A'..='Z' | 'a'..='z' | '_' => self.word(next),
             '0'..='9' => self.number(next),
+            '"' => self.string(),
             ' ' | '\r' | '\n' => Token::Nothing,
             _ => panic!("Unexpected {}", next)  
         };
@@ -106,6 +110,20 @@ impl<'a> Scanner<'a> {
         } else {
             Some(token)
         }
+    }
+
+    fn string(&mut self) -> Token {
+        let mut s = String::new();
+
+        while let Some(c) = self.input.next() {
+            if c == '"' {
+                break;
+            }
+
+            s.push(c);
+        }
+
+        Token::String(s)
     }
 
     fn word(&mut self, first: char) -> Token {
