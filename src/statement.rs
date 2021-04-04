@@ -1,6 +1,7 @@
 use crate::expression::*;
 use crate::environment::Environment;
 
+use std::cell::RefCell;
 use std::rc::Rc;
 
 pub enum StatementValue {
@@ -95,7 +96,7 @@ pub struct FunctionStatement {
 
 impl Statement for FunctionStatement {
     fn exec(&self, env: &mut Environment) {
-        let func = Function::new(self.params.clone(), self.body.clone(), Rc::new(env.clone()));
+        let func = Function::new(self.params.clone(), self.body.clone(), RefCell::new(env.clone()));
         env.put(&self.name, ScriptValue::Function(func));
     }
 }

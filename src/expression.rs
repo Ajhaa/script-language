@@ -3,12 +3,13 @@ use crate::environment::Environment;
 use crate::statement::*;
 use std::fmt;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Clone)]
 pub struct Function {
     pub params: Vec<String>,
     pub body: Rc<Box<dyn Statement>>,
-    pub env: Rc<Environment>
+    pub env: RefCell<Environment>
 }
 
 impl fmt::Debug for Function {
@@ -18,14 +19,15 @@ impl fmt::Debug for Function {
 }
 
 impl Function {
-    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Rc<Environment>) -> Function {
+    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: RefCell<Environment>) -> Function {
         Function { params, body, env }
     }
 
     pub fn call(&self, _env: &mut Environment, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
-        let mut env = (*self.env).clone();
+        let mut env = self.env.borrow_mut();
+        let mut pass_env = env.clone();
         for i in 0..self.params.len() {
-            env.put(&self.params[i], params[i].eval(&mut (*self.env).clone()))
+            env.put(&self.params[i], params[i].eval(&mut pass_env));
         }
         let val = (*self.body).eval(&mut env);
         match val {
