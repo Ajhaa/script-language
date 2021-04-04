@@ -34,5 +34,5 @@ fn main() {
         stmt.exec(&mut env);
     }
 
-    // println!("{:?}", env.variables);
+    println!("{:?}", env.variables);
 }

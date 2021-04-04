@@ -3,8 +3,20 @@ use crate::environment::Environment;
 
 use std::rc::Rc;
 
+pub enum StatementValue {
+    Normal(ScriptValue),
+    Return(ScriptValue)
+}
+
 pub trait Statement {
-    fn exec(&self, env: &mut Environment);
+    fn exec(&self, env: &mut Environment) {
+        self.eval(env);
+    }
+
+    fn eval(&self, env: &mut Environment) -> StatementValue {
+        self.exec(env);
+        StatementValue::Normal(ScriptValue::Unit)
+    }
 }
 
 pub struct DeclarationStatement {
@@ -46,11 +58,13 @@ pub struct IfStatement {
 }
 
 impl Statement for IfStatement {
-    fn exec(&self, env: &mut Environment) {
+    fn eval(&self, env: &mut Environment) -> StatementValue {
         if let ScriptValue::Boolean(true) = self.condition.eval(env) {
-            self.if_body.exec(env);
+            self.if_body.eval(env)
         } else if let Some(stmt) = &self.else_body {
-            stmt.exec(env);
+            stmt.eval(env)
+        } else {
+            StatementValue::Normal(ScriptValue::Unit)
         }
     }
 }
@@ -61,10 +75,15 @@ pub struct WhileStatement {
 }
 
 impl Statement for WhileStatement {
-    fn exec(&self, env: &mut Environment) {
+    fn eval(&self, env: &mut Environment) -> StatementValue{
         while let ScriptValue::Boolean(true) = self.condition.eval(env) {
-            self.body.exec(env);
+            let res = self.body.eval(env);
+            if let StatementValue::Return(_) = res {
+                return res
+            }
         }
+
+        StatementValue::Normal(ScriptValue::Unit)
     }
 }
 
@@ -86,8 +105,8 @@ pub struct ExpressionStatement {
 }
 
 impl Statement for ExpressionStatement {
-    fn exec(&self, env: &mut Environment) {
-        println!("{}", self.expr.eval(env))
+    fn eval(&self, env: &mut Environment) -> StatementValue {
+        StatementValue::Normal(self.expr.eval(env))
     }
 }
 
@@ -96,9 +115,26 @@ pub struct BlockStatement {
 }
 
 impl Statement for BlockStatement {
-    fn exec(&self, env: &mut Environment) {
+    fn eval(&self, env: &mut Environment) -> StatementValue {
         for stmt in &self.body {
-            stmt.exec(env);
+            let ret = stmt.eval(env);
+            if let StatementValue::Normal(_) = ret {
+                continue;
+            } else {
+                return ret
+            }
         }
+
+        StatementValue::Normal(ScriptValue::Unit)
+    }
+}
+
+pub struct ReturnStatement {
+    pub expr: Box<dyn Expression>
+}
+
+impl Statement for ReturnStatement {
+    fn eval(&self, env: &mut Environment) -> StatementValue {
+        StatementValue::Return(self.expr.eval(env))
     }
 }

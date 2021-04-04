@@ -152,15 +152,29 @@ impl Parser {
                     let name = ident.to_owned();
         
                     self.advance().should_be(&Token::LeftParen);
-                    // stuff
-                    self.advance().should_be(&Token::RightParen);
                     self.advance();
+                    let mut params = Vec::new();
+                    while let Some(Token::Identifier(ident)) = self.current() {
+                        params.push(ident.clone());
+                        if let Some(Token::Comma) = self.advance() {
+                            self.consume();
+                        } else {
+                            break;
+                        }
+                    }
+                    self.consume().should_be(&Token::RightParen);
                     let body = self.statement();
-                    Box::new(FunctionStatement { name, params: Vec::new(), body: Rc::new(body) })
+              
+                    Box::new(FunctionStatement { name, params, body: Rc::new(body) })
                 } else {
                     panic!("Unexpected {:?} while parsing function", next)
                 }
 
+            },
+            Token::Return => {
+                self.consume();
+                let expr = self.expression();
+                Box::new(ReturnStatement { expr })
             },
             Token::LeftBracket => {
                 self.advance();
@@ -265,11 +279,24 @@ impl Parser {
             Token::Identifier(identifier) => {
                 let ident = identifier.to_owned();
                 if let Some(Token::LeftParen) = self.current() {
-                    self.consume();
-                    // params
+                    self.advance();
+                    let mut params = Vec::new();
+                    while let Some(token) = self.current() {
+                        if token == &Token::RightParen {
+                            break;
+                        }
+
+                        let expr = self.expression();
+                        params.push(expr);
+
+                        if let Some(Token::Comma) = self.current() {
+                            self.consume();
+                        } else {
+                            break;
+                        }
+                    }
                     self.consume().should_be(&Token::RightParen);
-        
-                    Box::new(FunctionExpression { name: ident, params: Vec::new() })
+                    Box::new(FunctionExpression { name: ident, params })
                 } else {
                     Box::new(VariableExpression { identifier: ident.to_owned() })
                 }

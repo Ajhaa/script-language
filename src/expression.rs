@@ -1,6 +1,6 @@
 use crate::token::Token;
 use crate::environment::Environment;
-use crate::statement::Statement;
+use crate::statement::*;
 use std::fmt;
 use std::rc::Rc;
 
@@ -21,10 +21,15 @@ impl Function {
         Function { params, body }
     }
 
-    pub fn call(&self, env: &mut Environment, params: Vec<Box<dyn Expression>>) -> ScriptValue {
-        (*self.body).exec(env);
-
-        ScriptValue::None
+    pub fn call(&self, env: &mut Environment, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
+        for i in 0..self.params.len() {
+            env.put(&self.params[i], params[i].eval(&mut env.clone()))
+        }
+        let val = (*self.body).eval(env);
+        match val {
+            StatementValue::Normal(x) => x,
+            StatementValue::Return(x) => x 
+        }
     }
 }
 
@@ -41,7 +46,8 @@ pub enum ScriptValue {
     String(String),
     Boolean(bool),
     Function(Function),
-    None
+    None,
+    Unit
 }
 
 impl ScriptValue {
@@ -105,11 +111,12 @@ impl fmt::Display for ScriptValue {
             ScriptValue::String(s) => write!(f, "{}", s),
             ScriptValue::Function(_) => write!(f, "Func"),
             ScriptValue::None => write!(f, "null"),
+            ScriptValue::Unit => write!(f, "()")
         }        
     }
 }
 
-pub trait Expression {
+pub trait Expression: fmt::Debug {
     fn eval(&self, env: &mut Environment) -> ScriptValue;
 }
 // pub struct ValueExpression {
@@ -127,7 +134,7 @@ pub trait Expression {
 //         ValueExpression { value: ScriptValue::Number(num) }
 //     }
 // }
-
+#[derive(Debug)]
 pub struct VariableExpression {
     pub identifier: String
 }
@@ -138,6 +145,7 @@ impl Expression for VariableExpression {
     }
 }
 
+#[derive(Debug)]
 pub struct ConditionExpression {
     pub left: Box<dyn Expression>,
     pub right: Box<dyn Expression>,
@@ -152,6 +160,7 @@ impl Expression for ConditionExpression {
     }
 }
 
+#[derive(Debug)]
 pub struct AdditionExpression {
     pub left: Box<dyn Expression>,
     pub right: Box<dyn Expression>,
@@ -166,6 +175,7 @@ impl Expression for AdditionExpression {
     }
 }
 
+#[derive(Debug)]
 pub struct MultiplicationExpression {
     pub left: Box<dyn Expression>,
     pub right: Box<dyn Expression>,
@@ -181,7 +191,7 @@ impl Expression for MultiplicationExpression {
 }
 
 
-// TODO
+#[derive(Debug)]
 pub struct FunctionExpression {
     pub name: String,
     pub params: Vec<Box<dyn Expression>>
@@ -193,7 +203,7 @@ impl Expression for FunctionExpression {
         let target = env.get(&self.name);
         match target {
             Some(ScriptValue::Function(func)) => {
-                func.call(&mut env_clone, Vec::new())
+                func.call(&mut env_clone, &self.params)
             },
             _ => panic!("Cannot call {:?}", target)
         }

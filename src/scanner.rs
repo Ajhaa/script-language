@@ -27,7 +27,8 @@ impl<'a> Scanner<'a> {
                 ("while", Token::While),
                 ("true", Token::Boolean(true)),
                 ("false", Token::Boolean(false)),
-                ("null", Token::None)
+                ("null", Token::None),
+                ("return", Token::Return)
             ]))
         }
     }

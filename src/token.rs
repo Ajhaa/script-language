@@ -29,6 +29,7 @@ pub enum Token {
     LeftParen,
     RightParen,
     Comma,
+    Return,
     // TODO better solution,
     Nothing
 }
