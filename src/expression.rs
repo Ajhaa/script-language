@@ -7,7 +7,8 @@ use std::rc::Rc;
 #[derive(Clone)]
 pub struct Function {
     pub params: Vec<String>,
-    pub body: Rc<Box<dyn Statement>>
+    pub body: Rc<Box<dyn Statement>>,
+    pub env: Rc<Environment>
 }
 
 impl fmt::Debug for Function {
@@ -17,15 +18,16 @@ impl fmt::Debug for Function {
 }
 
 impl Function {
-    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>) -> Function {
-        Function { params, body }
+    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Rc<Environment>) -> Function {
+        Function { params, body, env }
     }
 
-    pub fn call(&self, env: &mut Environment, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
+    pub fn call(&self, _env: &mut Environment, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
+        let mut env = (*self.env).clone();
         for i in 0..self.params.len() {
-            env.put(&self.params[i], params[i].eval(&mut env.clone()))
+            env.put(&self.params[i], params[i].eval(&mut (*self.env).clone()))
         }
-        let val = (*self.body).eval(env);
+        let val = (*self.body).eval(&mut env);
         match val {
             StatementValue::Normal(x) => x,
             StatementValue::Return(x) => x 

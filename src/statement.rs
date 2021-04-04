@@ -95,7 +95,7 @@ pub struct FunctionStatement {
 
 impl Statement for FunctionStatement {
     fn exec(&self, env: &mut Environment) {
-        let func = Function::new(self.params.clone(), self.body.clone());
+        let func = Function::new(self.params.clone(), self.body.clone(), Rc::new(env.clone()));
         env.put(&self.name, ScriptValue::Function(func));
     }
 }
