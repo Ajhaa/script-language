@@ -1,6 +1,38 @@
 use crate::token::Token;
 use crate::environment::Environment;
+use crate::statement::Statement;
 use std::fmt;
+use std::rc::Rc;
+
+#[derive(Clone)]
+pub struct Function {
+    pub params: Vec<String>,
+    pub body: Rc<Box<dyn Statement>>
+}
+
+impl fmt::Debug for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Func")
+    }
+}
+
+impl Function {
+    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>) -> Function {
+        Function { params, body }
+    }
+
+    pub fn call(&self, env: &mut Environment, params: Vec<Box<dyn Expression>>) -> ScriptValue {
+        (*self.body).exec(env);
+
+        ScriptValue::None
+    }
+}
+
+// impl std::clone::Clone for Function {
+//     fn clone(&self) -> Function {
+//         Function { body: self.body }
+//     }
+// }
 
 // pub type ScriptValue = f64;
 #[derive(Debug, Clone)]
@@ -8,6 +40,7 @@ pub enum ScriptValue {
     Number(f64),
     String(String),
     Boolean(bool),
+    Function(Function),
     None
 }
 
@@ -70,6 +103,7 @@ impl fmt::Display for ScriptValue {
             ScriptValue::Number(n) => write!(f, "{}", n),
             ScriptValue::Boolean(b) => write!(f, "{}", b),
             ScriptValue::String(s) => write!(f, "{}", s),
+            ScriptValue::Function(_) => write!(f, "Func"),
             ScriptValue::None => write!(f, "null"),
         }        
     }
@@ -155,7 +189,14 @@ pub struct FunctionExpression {
 
 impl Expression for FunctionExpression {
     fn eval(&self, env: &mut Environment) -> ScriptValue {
-        ScriptValue::Number(0.0)
+        let mut env_clone = env.clone();
+        let target = env.get(&self.name);
+        match target {
+            Some(ScriptValue::Function(func)) => {
+                func.call(&mut env_clone, Vec::new())
+            },
+            _ => panic!("Cannot call {:?}", target)
+        }
     }
 }
 

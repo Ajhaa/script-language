@@ -2,9 +2,7 @@ use crate::token::{Token, Should};
 use crate::expression::*;
 use crate::statement::*;
 
-use itertools::structs::MultiPeek;
-use itertools::multipeek;
-use std::vec::IntoIter;
+use std::rc::Rc;
 
 struct Tokens {
     input: Vec<Token>,
@@ -158,7 +156,7 @@ impl Parser {
                     self.advance().should_be(&Token::RightParen);
                     self.advance();
                     let body = self.statement();
-                    Box::new(FunctionStatement { name, params: Vec::new(), body })
+                    Box::new(FunctionStatement { name, params: Vec::new(), body: Rc::new(body) })
                 } else {
                     panic!("Unexpected {:?} while parsing function", next)
                 }
@@ -264,7 +262,18 @@ impl Parser {
             Token::String(string) => Box::new(ScriptValue::String(string.to_owned())),
             Token::Boolean(b) => Box::new(ScriptValue::Boolean(*b)),
             Token::None => Box::new(ScriptValue::None),
-            Token::Identifier(identifier) => Box::new(VariableExpression { identifier: identifier.to_owned() }),
+            Token::Identifier(identifier) => {
+                let ident = identifier.to_owned();
+                if let Some(Token::LeftParen) = self.current() {
+                    self.consume();
+                    // params
+                    self.consume().should_be(&Token::RightParen);
+        
+                    Box::new(FunctionExpression { name: ident, params: Vec::new() })
+                } else {
+                    Box::new(VariableExpression { identifier: ident.to_owned() })
+                }
+            }
             Token::LeftParen => {
                 let expr = self.expression();
                 self.consume().should_be(&Token::RightParen);

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use crate::expression::ScriptValue;
 
+#[derive(Clone)]
 pub struct Environment {
     pub variables: HashMap<String, ScriptValue>
 }

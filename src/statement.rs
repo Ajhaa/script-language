@@ -1,6 +1,8 @@
 use crate::expression::*;
 use crate::environment::Environment;
 
+use std::rc::Rc;
+
 pub trait Statement {
     fn exec(&self, env: &mut Environment);
 }
@@ -69,12 +71,13 @@ impl Statement for WhileStatement {
 pub struct FunctionStatement {
     pub name: String,
     pub params: Vec<String>,
-    pub body: Box<dyn Statement>
+    pub body: Rc<Box<dyn Statement>>
 }
 
 impl Statement for FunctionStatement {
     fn exec(&self, env: &mut Environment) {
-        // env.function(name, params, body)
+        let func = Function::new(self.params.clone(), self.body.clone());
+        env.put(&self.name, ScriptValue::Function(func));
     }
 }
 
