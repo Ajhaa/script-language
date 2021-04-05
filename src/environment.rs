@@ -9,8 +9,25 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn put(&mut self, key: String, val: ScriptValue) {
-        self.variables.insert(key, val);
+    pub fn put(&mut self, key: String, value: ScriptValue) {
+        match self.variables.get(&key) {
+            Some(_) => {
+                self.variables.insert(key, value);
+            },
+            None => {
+                let mut parent = self.parent.borrow_mut();
+                match &mut *parent {
+                    Some(env) => {
+                        env.put(key, value);
+                    },
+                    None => panic!("Variable {} not defined", key)
+                };
+            }
+        };
+    }
+
+    pub fn put_new(&mut self, key: String, value: ScriptValue) {
+        self.variables.insert(key, value);
     }
 
     pub fn get(&self, key: &str) -> Option<ScriptValue> {
@@ -19,7 +36,9 @@ impl Env {
             None => {
                 let parent = self.parent.borrow();
                 match &*parent {
-                    Some(env) => env.get(key),
+                    Some(env) => {
+                        env.get(key)
+                    },
                     None => None
                 }
             }
@@ -64,6 +83,16 @@ impl Environment {
             None => panic!("ASDAS")
         }
            
+    }
+
+    pub fn put_new(&mut self, key: &str, val: ScriptValue) {
+        let env = Rc::clone(&self.env);
+        let mut previous = env.borrow_mut();
+
+        match &mut *previous {
+            Some(e) => e.put_new(key.to_owned(), val),
+            None => panic!("ASDAS")
+        }   
     }
 
     pub fn get(&self, key: &str) -> Option<ScriptValue> {

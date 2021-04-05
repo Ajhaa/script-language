@@ -1,5 +1,5 @@
 use crate::token::Token;
-use crate::environment::Environment;
+use crate::environment::*;
 use crate::statement::*;
 use crate::interpreter::Interpreter;
 use std::fmt;
@@ -18,7 +18,7 @@ pub trait ExpressionVisitor {
 pub struct Function {
     pub params: Vec<String>,
     pub body: Rc<Box<dyn Statement>>,
-    pub env: Environment
+    pub env: Rc<RefCell<Option<Env>>>
 }
 
 impl fmt::Debug for Function {
@@ -28,22 +28,29 @@ impl fmt::Debug for Function {
 }
 
 impl Function {
-    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Environment) -> Rc<RefCell<Function>> {
+    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Rc<RefCell<Option<Env>>>) -> Rc<RefCell<Function>> {
         Rc::new(RefCell::new(Function { params, body, env }))
     }
 
-    pub fn call(&self, visitor: &mut Interpreter, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
-        //let mut env = self.env.borrow_mut();
-        //let mut pass_env = env.clone();
-        for i in 0..self.params.len() {
-            let val = params[i].accept(visitor);
-            visitor.env.put(&self.params[i], val);
+    pub fn call(&self, base: &mut Interpreter, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
+        let mut interpreter = Interpreter { env: Environment { env: Rc::clone(&self.env) }};
+        interpreter.env.enter();
+        for i in 0 .. self.params.len() {
+            let val = params[i].accept(base);
+            let key = self.params[i].clone();
+            interpreter.env.put_new(&key, val);
         }
-        let val = (*self.body).accept(visitor);
+        let val = (*self.body).accept(&mut interpreter);
+        interpreter.env.exit();
         match val {
             StatementValue::Normal(x) => x,
             StatementValue::Return(x) => x 
         }
+    }
+
+    pub fn arg(&self, key: String, val: ScriptValue) {
+        let mut wrapper = Environment { env: Rc::clone(&self.env) };
+        wrapper.put_new(&key, val);
     }
 }
 

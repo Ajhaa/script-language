@@ -10,7 +10,9 @@ fn createCounter(start) {
 var inc1 = createCounter(0 - 5)
 var inc2 = createCounter(200)
 
-inc1()
+
 var x = inc1()
+x = inc1()
+
 
 var y = inc2()

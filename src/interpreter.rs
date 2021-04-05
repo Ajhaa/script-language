@@ -2,6 +2,8 @@ use crate::expression::*;
 use crate::statement::*;
 use crate::environment::*;
 
+use std::rc::Rc;
+
 pub struct Interpreter {
     pub env: Environment
 }
@@ -30,7 +32,7 @@ impl StatementVisitor for Interpreter {
         };
 
         for var in &stmt.variables {
-            self.env.put(&var, value.clone());
+            self.env.put_new(&var, value.clone());
         }
 
         StatementValue::Normal(ScriptValue::Unit)
@@ -55,8 +57,10 @@ impl StatementVisitor for Interpreter {
 
     // TODO function env
     fn visit_function(&mut self, stmt: &FunctionStatement) -> StatementValue {
-        let func = Function::new(stmt.params.clone(), stmt.body.clone(), self.env.clone());
-        self.env.put(&stmt.name, ScriptValue::Function(func));
+        self.env.enter();
+        let func = Function::new(stmt.params.clone(), stmt.body.clone(), Rc::clone(&self.env.env));
+        self.env.exit();
+        self.env.put_new(&stmt.name, ScriptValue::Function(func));
 
         StatementValue::Normal(ScriptValue::Unit)
     }
@@ -109,7 +113,10 @@ impl ExpressionVisitor for Interpreter {
     }
 
     fn visit_variable(&mut self, expr: &VariableExpression) -> ScriptValue {
-        self.env.get(&expr.identifier).unwrap().clone()
+        match self.env.get(&expr.identifier) {
+            Some(var) => var.clone(),
+            None => panic!("variable not found {}", &expr.identifier)
+        }
     }
 
     fn visit_condition(&mut self, expr: &ConditionExpression) -> ScriptValue {
@@ -123,7 +130,12 @@ impl ExpressionVisitor for Interpreter {
         self.env.enter();
         let val = match target {
             Some(ScriptValue::Function(func)) => {
-                func.borrow().call(self, &expr.params)
+                let f = func.borrow();
+                //let mut wrapper = Environment { env: Rc::clone(&f.env) };
+                //wrapper.enter();
+                let ret = f.call(self, &expr.params);
+                // wrapper.exit();
+                ret
             },
             _ => panic!("Cannot call {:?}", target)
         };
