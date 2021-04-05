@@ -4,10 +4,12 @@ mod expression;
 mod statement;
 mod parser;
 mod environment;
+mod interpreter;
 
 use scanner::Scanner;
 use parser::Parser;
 use environment::Environment;
+use interpreter::Interpreter;
 
 use std::env;
 use std::fs;
@@ -28,11 +30,10 @@ fn main() {
 
     let program = parser.parse();
 
-    let mut env = Environment::new();
+    let env = Environment::new();
 
-    for stmt in program.iter() {
-        stmt.exec(&mut env);
-    }
+    let mut interpreter = Interpreter { env };
+    interpreter.exec(program);
 
-    println!("{:?}", env.variables);
+    println!("{:?}", interpreter.env.variables);
 }

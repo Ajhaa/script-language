@@ -1,9 +1,19 @@
 use crate::token::Token;
 use crate::environment::Environment;
 use crate::statement::*;
+use crate::interpreter::Interpreter;
 use std::fmt;
 use std::rc::Rc;
 use std::cell::RefCell;
+
+pub trait ExpressionVisitor {
+    fn visit_variable(&mut self, expr: &VariableExpression) -> ScriptValue;
+    fn visit_value(&mut self, expr: &ScriptValue) -> ScriptValue;
+    fn visit_addition(&mut self, expr: &AdditionExpression) -> ScriptValue;
+    fn visit_multiplication(&mut self, expr: &MultiplicationExpression) -> ScriptValue;
+    fn visit_condition(&mut self, expr: &ConditionExpression) -> ScriptValue;
+    fn visit_function(&mut self, expr: &FunctionExpression) -> ScriptValue;
+}
 
 pub struct Function {
     pub params: Vec<String>,
@@ -22,14 +32,14 @@ impl Function {
         Rc::new(RefCell::new(Function { params, body, env }))
     }
 
-    pub fn call(&mut self, _env: &mut Environment, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
+    pub fn call(&self, visitor: &mut Interpreter, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
         //let mut env = self.env.borrow_mut();
         //let mut pass_env = env.clone();
         for i in 0..self.params.len() {
-            let val = params[i].eval(&mut self.env);
-            self.env.put(&self.params[i], val);
+            let val = params[i].accept(visitor);
+            visitor.env.put(&self.params[i], val);
         }
-        let val = (*self.body).eval(&mut self.env);
+        let val = (*self.body).accept(visitor);
         match val {
             StatementValue::Normal(x) => x,
             StatementValue::Return(x) => x 
@@ -56,7 +66,7 @@ pub enum ScriptValue {
 
 impl ScriptValue {
     // TODO better name
-    fn numeric(&self, other: ScriptValue, operator: Token) -> ScriptValue { 
+    pub fn numeric(&self, other: ScriptValue, operator: Token) -> ScriptValue { 
         match (self, &other) {
             (ScriptValue::Number(left), ScriptValue::Number(right)) => {
                 let result = match operator {
@@ -73,7 +83,7 @@ impl ScriptValue {
         }
     }
 
-    fn boolean(&self, other: ScriptValue, operator: Token) -> ScriptValue {
+    pub fn boolean(&self, other: ScriptValue, operator: Token) -> ScriptValue {
         let result = match (self, &other) {
             (ScriptValue::Number(left), ScriptValue::Number(right)) => {
                 match operator {
@@ -101,8 +111,8 @@ impl ScriptValue {
 }
 
 impl Expression for ScriptValue {
-    fn eval(&self, _env: &mut Environment) -> ScriptValue {
-        self.clone()
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
+        visitor.visit_value(&self)
     }
 }
 
@@ -121,7 +131,7 @@ impl fmt::Display for ScriptValue {
 }
 
 pub trait Expression: fmt::Debug {
-    fn eval(&self, env: &mut Environment) -> ScriptValue;
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue;
 }
 // pub struct ValueExpression {
 //     pub value: ScriptValue
@@ -144,8 +154,8 @@ pub struct VariableExpression {
 }
 
 impl Expression for VariableExpression {
-    fn eval(&self, env: &mut Environment) -> ScriptValue {
-        env.get(&self.identifier).unwrap().clone()
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
+        visitor.visit_variable(&self)
     }
 }
 
@@ -157,10 +167,8 @@ pub struct ConditionExpression {
 }
 
 impl Expression for ConditionExpression {
-    fn eval(&self, env: &mut Environment) -> ScriptValue {
-        let left = self.left.eval(env);
-        let right = self.right.eval(env);
-        left.boolean(right, self.operator.clone())
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
+        visitor.visit_condition(&self)
     }
 }
 
@@ -172,10 +180,8 @@ pub struct AdditionExpression {
 }
 
 impl Expression for AdditionExpression {
-    fn eval(&self, env: &mut Environment) -> ScriptValue {
-        let left = self.left.eval(env);
-        let right = self.right.eval(env);
-        left.numeric(right, self.operator.clone())
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
+        visitor.visit_addition(&self)
     }
 }
 
@@ -187,10 +193,8 @@ pub struct MultiplicationExpression {
 }
 
 impl Expression for MultiplicationExpression {
-    fn eval(&self, env: &mut Environment) -> ScriptValue {
-        let left = self.left.eval(env);
-        let right = self.right.eval(env);
-        left.numeric(right, self.operator.clone())
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
+        visitor.visit_multiplication(&self)
     }
 }
 
@@ -202,15 +206,8 @@ pub struct FunctionExpression {
 }
 
 impl Expression for FunctionExpression {
-    fn eval(&self, env: &mut Environment) -> ScriptValue {
-        let mut env_clone = env.clone();
-        let target = env.get(&self.name);
-        match target {
-            Some(ScriptValue::Function(func)) => {
-                func.borrow_mut().call(&mut env_clone, &self.params)
-            },
-            _ => panic!("Cannot call {:?}", target)
-        }
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
+        visitor.visit_function(&self)
     }
 }
 

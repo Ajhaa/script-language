@@ -15,7 +15,10 @@ impl Environment {
         self.variables.insert(key.to_owned(), val);
     }
 
-    pub fn get(&mut self, key: &str) -> Option<&ScriptValue> {
-        self.variables.get(key)
+    pub fn get(&mut self, key: &str) -> Option<ScriptValue> {
+        match self.variables.get(key) {
+            Some(val) => Some(val.clone()),
+            None => None
+        }
     }
 }
