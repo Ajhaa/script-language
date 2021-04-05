@@ -35,5 +35,5 @@ fn main() {
     let mut interpreter = Interpreter { env };
     interpreter.exec(program);
 
-    println!("{:?}", interpreter.env.env.last());
+    println!("{:?}", interpreter.env.dump());
 }
