@@ -5,31 +5,31 @@ use std::fmt;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-#[derive(Clone)]
 pub struct Function {
     pub params: Vec<String>,
     pub body: Rc<Box<dyn Statement>>,
-    pub env: RefCell<Environment>
+    pub env: Environment
 }
 
 impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("Func")
+        write!(f, "Func({})", self.params.join(","))
     }
 }
 
 impl Function {
-    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: RefCell<Environment>) -> Function {
-        Function { params, body, env }
+    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Environment) -> Rc<RefCell<Function>> {
+        Rc::new(RefCell::new(Function { params, body, env }))
     }
 
-    pub fn call(&self, _env: &mut Environment, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
-        let mut env = self.env.borrow_mut();
-        let mut pass_env = env.clone();
+    pub fn call(&mut self, _env: &mut Environment, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
+        //let mut env = self.env.borrow_mut();
+        //let mut pass_env = env.clone();
         for i in 0..self.params.len() {
-            env.put(&self.params[i], params[i].eval(&mut pass_env));
+            let val = params[i].eval(&mut self.env);
+            self.env.put(&self.params[i], val);
         }
-        let val = (*self.body).eval(&mut env);
+        let val = (*self.body).eval(&mut self.env);
         match val {
             StatementValue::Normal(x) => x,
             StatementValue::Return(x) => x 
@@ -47,9 +47,9 @@ impl Function {
 #[derive(Debug, Clone)]
 pub enum ScriptValue {
     Number(f64),
-    String(String),
+    String(Rc<String>),
     Boolean(bool),
-    Function(Function),
+    Function(Rc<RefCell<Function>>),
     None,
     Unit
 }
@@ -207,7 +207,7 @@ impl Expression for FunctionExpression {
         let target = env.get(&self.name);
         match target {
             Some(ScriptValue::Function(func)) => {
-                func.call(&mut env_clone, &self.params)
+                func.borrow_mut().call(&mut env_clone, &self.params)
             },
             _ => panic!("Cannot call {:?}", target)
         }

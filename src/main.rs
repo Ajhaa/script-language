@@ -30,7 +30,7 @@ fn main() {
 
     let mut env = Environment::new();
 
-    for stmt in program {
+    for stmt in program.iter() {
         stmt.exec(&mut env);
     }
 
