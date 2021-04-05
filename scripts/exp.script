@@ -6,4 +6,19 @@ fn exp(x, y) {
     return x * exp(x, y - 1)
 }
 
+fn exp_iter(x, y) {
+    if y <= 0 {
+        return 1
+    }
+    var result = x
+    while y > 1 {
+        result = result * x
+        y = y - 1
+    }
+
+    return result
+}
+
 var x = exp(2, 32)
+print(x)
+print(exp_iter(2, 8))

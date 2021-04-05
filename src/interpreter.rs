@@ -93,6 +93,15 @@ impl StatementVisitor for Interpreter {
     fn visit_expression(&mut self, stmt: &ExpressionStatement) -> StatementValue {
         StatementValue::Normal(stmt.expr.accept(self))
     }
+
+    fn visit_write(&mut self, stmt: &WriteStatement) -> StatementValue {
+        let val = stmt.expr.accept(self);
+        // TODO possible to print without ln?
+        println!("{}", val);
+
+        StatementValue::Normal(ScriptValue::Unit)
+    }
+
 }
 
 impl ExpressionVisitor for Interpreter {

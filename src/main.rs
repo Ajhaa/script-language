@@ -8,11 +8,14 @@ mod interpreter;
 
 use scanner::Scanner;
 use parser::Parser;
+use expression::*;
+use statement::*;
 use environment::Environment;
 use interpreter::Interpreter;
 
 use std::env;
 use std::fs;
+use std::rc::Rc;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -24,16 +27,24 @@ fn main() {
 
     let tokens = scanner.scan();
 
-    println!("{:?}\n-----", tokens);
+    //println!("{:?}\n-----", tokens);
 
     let mut parser = Parser::new(tokens);
 
     let program = parser.parse();
 
-    let env = Environment::new();
+    let mut env = Environment::new();
+
+    env.put_new("print", ScriptValue::Function(
+        Function::new(
+            vec!["target".to_owned()],
+            Rc::new(Box::new(WriteStatement { expr: Box::new(VariableExpression { identifier: "target".to_owned() }) })),
+            Rc::clone(&env.env)
+        )
+    ));
 
     let mut interpreter = Interpreter { env };
     interpreter.exec(program);
 
-    println!("{:?}", interpreter.env.dump());
+    //println!("{:?}", interpreter.env.dump());
 }

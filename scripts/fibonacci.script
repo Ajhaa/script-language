@@ -7,3 +7,4 @@ fn fibonacci(n) {
 }
 
 var x = fibonacci(10)
+print(x)

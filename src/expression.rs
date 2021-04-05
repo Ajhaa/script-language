@@ -47,11 +47,6 @@ impl Function {
             StatementValue::Return(x) => x 
         }
     }
-
-    pub fn arg(&self, key: String, val: ScriptValue) {
-        let mut wrapper = Environment { env: Rc::clone(&self.env) };
-        wrapper.put_new(&key, val);
-    }
 }
 
 // impl std::clone::Clone for Function {

@@ -11,6 +11,7 @@ pub trait StatementVisitor {
     fn visit_block(&mut self, stmt: &BlockStatement) -> StatementValue;
     fn visit_expression(&mut self, stmt: &ExpressionStatement) -> StatementValue;
     fn visit_return(&mut self, stmt: &ReturnStatement) -> StatementValue;
+    fn visit_write(&mut self, stmt: &WriteStatement) -> StatementValue;
 }
 
 pub enum StatementValue {
@@ -106,5 +107,15 @@ pub struct ReturnStatement {
 impl Statement for ReturnStatement {
     fn accept(&self, visitor: &mut dyn StatementVisitor) -> StatementValue {
         visitor.visit_return(self)
+    }
+}
+
+pub struct WriteStatement {
+    pub expr: Box<dyn Expression>
+}
+
+impl Statement for WriteStatement {
+    fn accept(&self, visitor: &mut dyn StatementVisitor) -> StatementValue {
+        visitor.visit_write(self)
     }
 }
