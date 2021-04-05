@@ -37,14 +37,18 @@ impl StatementVisitor for Interpreter {
     }
 
     fn visit_block(&mut self, stmt: &BlockStatement) -> StatementValue {
+        self.env.enter();
         for stmt in &stmt.body {
             let ret = stmt.accept(self);
             if let StatementValue::Normal(_) = ret {
                 continue;
             } else {
+                self.env.exit();
                 return ret
             }
         }
+
+        self.env.exit();
 
         StatementValue::Normal(ScriptValue::Unit)
     }
@@ -116,11 +120,14 @@ impl ExpressionVisitor for Interpreter {
 
     fn visit_function(&mut self, expr: &FunctionExpression) -> ScriptValue {
         let target = self.env.get(&expr.name);
-        match target {
+        self.env.enter();
+        let val = match target {
             Some(ScriptValue::Function(func)) => {
                 func.borrow().call(self, &expr.params)
             },
             _ => panic!("Cannot call {:?}", target)
-        }
+        };
+        self.env.exit();
+        val
     }
 }
