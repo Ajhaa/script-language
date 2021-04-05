@@ -135,10 +135,10 @@ impl ExpressionVisitor for Interpreter {
     }
 
     fn visit_function(&mut self, expr: &FunctionExpression) -> ScriptValue {
-        let target = self.env.get(&expr.name);
+        let target = expr.expr.accept(self);
         self.env.enter();
         let val = match target {
-            Some(ScriptValue::Function(func)) => {
+            ScriptValue::Function(func) => {
                 let f = func.borrow();
                 //let mut wrapper = Environment { env: Rc::clone(&f.env) };
                 //wrapper.enter();

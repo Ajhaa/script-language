@@ -81,7 +81,7 @@ impl ScriptValue {
 
                 ScriptValue::Number(result)
             },
-            _ => panic!("Cannot add {:?} and {:?}", self, other)
+            _ => panic!("Cannot {:?} {:?} and {:?}", operator, self, other)
         }
     }
 
@@ -203,7 +203,7 @@ impl Expression for MultiplicationExpression {
 
 #[derive(Debug)]
 pub struct FunctionExpression {
-    pub name: String,
+    pub expr: Box<dyn Expression>,
     pub params: Vec<Box<dyn Expression>>
 }
 

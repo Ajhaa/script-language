@@ -95,7 +95,6 @@ impl Parser {
 
     fn statement(&mut self) -> Box<dyn Statement> {
         let current = self.current();
-        // println!("Starting statement with {:?}", next);
         match current.unwrap() {
             Token::Var => {
                 // TODO multi var
@@ -271,35 +270,16 @@ impl Parser {
     fn factor(&mut self) -> Box<dyn Expression> {
         let next = self.consume().unwrap();
 
-        match next {
+        let factor: Box<dyn Expression> = match next {
             Token::Number(value) => Box::new(ScriptValue::Number(*value)),
             Token::String(string) => Box::new(ScriptValue::String(Rc::new(string.to_owned()))),
             Token::Boolean(b) => Box::new(ScriptValue::Boolean(*b)),
             Token::None => Box::new(ScriptValue::None),
             Token::Identifier(identifier) => {
                 let ident = identifier.to_owned();
-                if let Some(Token::LeftParen) = self.current() {
-                    self.advance();
-                    let mut params = Vec::new();
-                    while let Some(token) = self.current() {
-                        if token == &Token::RightParen {
-                            break;
-                        }
-
-                        let expr = self.expression();
-                        params.push(expr);
-
-                        if let Some(Token::Comma) = self.current() {
-                            self.consume();
-                        } else {
-                            break;
-                        }
-                    }
-                    self.consume().should_be(&Token::RightParen);
-                    Box::new(FunctionExpression { name: ident, params })
-                } else {
-                    Box::new(VariableExpression { identifier: ident.to_owned() })
-                }
+               
+                Box::new(VariableExpression { identifier: ident })
+                
             }
             Token::LeftParen => {
                 let expr = self.expression();
@@ -307,6 +287,29 @@ impl Parser {
                 expr
             }
             _ => panic!("Not a factor: {:?}", next)
+        };
+
+        if let Some(Token::LeftParen) = self.current() {
+            self.advance();
+            let mut params = Vec::new();
+            while let Some(token) = self.current() {
+                if token == &Token::RightParen {
+                    break;
+                }
+
+                let expr = self.expression();
+                params.push(expr);
+
+                if let Some(Token::Comma) = self.current() {
+                    self.consume();
+                } else {
+                    break;
+                }
+            }
+            self.consume().should_be(&Token::RightParen);
+            return Box::new(FunctionExpression { expr: factor, params });
         }
+
+        factor
     }
 }
