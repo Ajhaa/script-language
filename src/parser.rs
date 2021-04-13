@@ -289,50 +289,10 @@ impl Parser {
             _ => panic!("Not a factor: {:?}", next)
         };
 
-        self.callAndAccess(factor)
-
-        // TODO endless chains of objects and funcCalls
-
-        // let expr = if let Some(Token::LeftParen) = self.current() {
-        //     self.advance();
-        //     let mut params = Vec::new();
-        //     while let Some(token) = self.current() {
-        //         if token == &Token::RightParen {
-        //             break;
-        //         }
-
-        //         let expr = self.expression();
-        //         params.push(expr);
-
-        //         if let Some(Token::Comma) = self.current() {
-        //             self.consume();
-        //         } else {
-        //             break;
-        //         }
-        //     }
-        //     self.consume().should_be(&Token::RightParen);
-        //     Box::new(FunctionExpression { expr: factor, params })
-        // } else {
-        //     factor
-        // };
-
-        // if let Some(Token::Dot) = self.current() {
-        //     self.advance();
-        //     match self.consume() {
-        //         Some(Token::Identifier(ident)) => {
-        //             Box::new(AccessExpression { expr, field: ident.to_owned() })
-        //         }
-        //         Some(other) => panic!("Cannot access {:?}", other),
-        //         None => panic!("Unexpected EOF when parsing")
-        //     }
-        // } else {
-        //     expr
-        // }
-
-        // expr
+        self.call_and_access(factor)
     }
 
-    fn callAndAccess(&mut self, base: Box<dyn Expression>) -> Box<dyn Expression> {
+    fn call_and_access(&mut self, base: Box<dyn Expression>) -> Box<dyn Expression> {
         let expr = if let Some(Token::LeftParen) = self.current() {
             self.advance();
             let mut params = Vec::new();
@@ -352,7 +312,7 @@ impl Parser {
             }
             self.consume().should_be(&Token::RightParen);
             let new_base = Box::new(FunctionExpression { expr: base, params });
-            self.callAndAccess(new_base)
+            self.call_and_access(new_base)
         } else {
             base
         };
@@ -362,7 +322,7 @@ impl Parser {
             match self.consume() {
                 Some(Token::Identifier(ident)) => {
                     let new_base = Box::new(AccessExpression { expr, field: ident.to_owned() });
-                    self.callAndAccess(new_base)
+                    self.call_and_access(new_base)
                 }
                 Some(other) => panic!("Cannot access {:?}", other),
                 None => panic!("Unexpected EOF when parsing")

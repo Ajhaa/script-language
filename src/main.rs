@@ -37,25 +37,22 @@ fn main() {
 
     let mut env = Environment::new();
 
-    env.put_new("print", ScriptValue::Function(
-        Function::new(
-            vec!["target".to_owned()],
-            Rc::new(Box::new(WriteStatement { expr: Box::new(VariableExpression { identifier: "target".to_owned() }) })),
-            Rc::clone(&env.env)
-        )
-    ));
+    env.create_internal_function("print", vec!["target".to_owned()],
+        |inpr| {
+            let val = inpr.env.get("target").unwrap();
+            println!("{}", val);
+            StatementValue::Normal(ScriptValue::Unit)
+        }
+    );
 
-    env.put_new("Object", ScriptValue::Function(
-        Function::new(
-            Vec::new(),
-            // Rc::new(Box::new(WriteStatement { expr: Box::new(VariableExpression { identifier: "target".to_owned() }) })),
-            Rc::new(Box::new(ExpressionStatement { expr: Box::new(ScriptValue::Object(Object::new()))})),
-            Rc::clone(&env.env)
-        )
-    ));
+    env.create_internal_function("Object", Vec::new(), 
+        |_| {
+            StatementValue::Normal(
+                ScriptValue::Object(Object::new())
+            )
+        }
+    );
 
     let mut interpreter = Interpreter { env };
     interpreter.exec(program);
-
-    //println!("{:?}", interpreter.env.dump());
 }

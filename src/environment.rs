@@ -1,5 +1,8 @@
 use std::collections::HashMap;
-use crate::expression::ScriptValue;
+use crate::expression::*;
+use crate::statement::*;
+use crate::object::*;
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -113,5 +116,19 @@ impl Environment {
             Some(e) => e.variables.clone(),
             None => panic!("ASDAS")
         }
+    }
+
+    pub fn create_internal_function(&mut self, name: &str, params: Vec<String>, func: InternalFunction) {
+        self.put_new(name, ScriptValue::Function(
+            Function::new(
+                params,
+                Rc::new(Box::new(
+                    InternalStatement {
+                        func
+                    }
+                )),
+                Rc::clone(&self.env)
+            ),
+        ));
     }
 }

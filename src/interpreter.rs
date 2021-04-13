@@ -103,6 +103,10 @@ impl StatementVisitor for Interpreter {
         StatementValue::Normal(ScriptValue::Unit)
     }
 
+    fn visit_internal(&mut self, stmt: &InternalStatement) -> StatementValue {
+        (stmt.func)(self)
+    }
+
 }
 
 impl ExpressionVisitor for Interpreter {

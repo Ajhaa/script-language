@@ -1,0 +1,11 @@
+var o1 = Object()
+o1.name = "o1"
+var o2 = Object()
+o2.name = "o2"
+
+print(o1.name)
+print(o2.name)
+o1.name = "o3"
+
+print(o1.name)
+print(o2.name)

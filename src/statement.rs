@@ -1,4 +1,6 @@
 use crate::expression::*;
+use crate::interpreter::*;
+use crate::environment::*;
 
 use std::rc::Rc;
 
@@ -12,6 +14,8 @@ pub trait StatementVisitor {
     fn visit_expression(&mut self, stmt: &ExpressionStatement) -> StatementValue;
     fn visit_return(&mut self, stmt: &ReturnStatement) -> StatementValue;
     fn visit_write(&mut self, stmt: &WriteStatement) -> StatementValue;
+    fn visit_internal(&mut self, stmt: &InternalStatement) -> StatementValue;
+    
 }
 
 pub enum StatementValue {
@@ -117,5 +121,17 @@ pub struct WriteStatement {
 impl Statement for WriteStatement {
     fn accept(&self, visitor: &mut dyn StatementVisitor) -> StatementValue {
         visitor.visit_write(self)
+    }
+}
+
+pub type InternalFunction = fn(interpreter: &mut Interpreter) -> StatementValue;
+
+pub struct InternalStatement {
+    pub func: InternalFunction
+}
+
+impl Statement for InternalStatement {
+    fn accept(&self, visitor: &mut dyn StatementVisitor) -> StatementValue {
+        visitor.visit_internal(self)
     }
 }

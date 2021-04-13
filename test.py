@@ -16,7 +16,8 @@ def run_and_compare(file, res_should):
 tests = [
     ['exp', ['4294967296', '256']],
     ['fibonacci', ['55']],
-    ['counter', ['-3', '201']]
+    ['counter', ['-3', '201']],
+    ['object', ['o1', 'o2', 'o3', 'o2']]
 ]
 
 successes = 0
