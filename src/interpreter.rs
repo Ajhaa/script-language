@@ -18,8 +18,9 @@ impl Interpreter {
 
 impl StatementVisitor for Interpreter {
     fn visit_assignment(&mut self, stmt: &AssignmentStatement) -> StatementValue {
-        let val = stmt.expr.accept(self);
-        self.env.put(&stmt.identifier, val);
+        let value = stmt.expr.accept(self);
+
+        stmt.assignee.assign(self, value);
         
         StatementValue::Normal(ScriptValue::Unit)
     }
@@ -150,5 +151,18 @@ impl ExpressionVisitor for Interpreter {
         };
         self.env.exit();
         val
+    }
+
+    fn visit_access(&mut self, expr: &AccessExpression) -> ScriptValue {
+        let target = expr.expr.accept(self);
+        match target {
+            ScriptValue::Object(obj) => {
+                match obj.borrow().get(&expr.field) {
+                    Some(val) => val,
+                    None => panic!("Object has no property {}", &expr.field)
+                }
+            },
+            _ => panic!("{:?} is not an object", target)
+        }
     }
 }

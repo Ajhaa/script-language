@@ -35,7 +35,7 @@ impl Statement for DeclarationStatement {
 }
 
 pub struct AssignmentStatement {
-    pub identifier: String,
+    pub assignee: Box<dyn Expression>,
     pub expr: Box<dyn Expression>
 }
 

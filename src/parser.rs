@@ -110,17 +110,17 @@ impl Parser {
                     panic!("stmt paininik");
                 }
             },
-            Token::Identifier(ident) => {
-                let identifier = ident.to_owned();
-                if let Some(Token::Assign) = self.lookahead() {
-                    self.skip(2);
-                    //self.advance();
-                    let expr = self.expression();
+            Token::Identifier(_) => {
+                let expr = self.expression();
+                if let Some(&Token::Assign) = self.current() {
+                    self.consume();
+                    let value = self.expression();
+                    Box::new(AssignmentStatement { assignee: expr, expr: value })
 
-                    Box::new(AssignmentStatement { identifier: identifier, expr })
+                    // self.consume();
+                    
                 } else {
-                    // self.reset_peek();
-                    Box::new(ExpressionStatement { expr: self.expression() })
+                    Box::new(ExpressionStatement { expr })
                 }
                 
             },
@@ -289,7 +289,51 @@ impl Parser {
             _ => panic!("Not a factor: {:?}", next)
         };
 
-        if let Some(Token::LeftParen) = self.current() {
+        self.callAndAccess(factor)
+
+        // TODO endless chains of objects and funcCalls
+
+        // let expr = if let Some(Token::LeftParen) = self.current() {
+        //     self.advance();
+        //     let mut params = Vec::new();
+        //     while let Some(token) = self.current() {
+        //         if token == &Token::RightParen {
+        //             break;
+        //         }
+
+        //         let expr = self.expression();
+        //         params.push(expr);
+
+        //         if let Some(Token::Comma) = self.current() {
+        //             self.consume();
+        //         } else {
+        //             break;
+        //         }
+        //     }
+        //     self.consume().should_be(&Token::RightParen);
+        //     Box::new(FunctionExpression { expr: factor, params })
+        // } else {
+        //     factor
+        // };
+
+        // if let Some(Token::Dot) = self.current() {
+        //     self.advance();
+        //     match self.consume() {
+        //         Some(Token::Identifier(ident)) => {
+        //             Box::new(AccessExpression { expr, field: ident.to_owned() })
+        //         }
+        //         Some(other) => panic!("Cannot access {:?}", other),
+        //         None => panic!("Unexpected EOF when parsing")
+        //     }
+        // } else {
+        //     expr
+        // }
+
+        // expr
+    }
+
+    fn callAndAccess(&mut self, base: Box<dyn Expression>) -> Box<dyn Expression> {
+        let expr = if let Some(Token::LeftParen) = self.current() {
             self.advance();
             let mut params = Vec::new();
             while let Some(token) = self.current() {
@@ -307,9 +351,24 @@ impl Parser {
                 }
             }
             self.consume().should_be(&Token::RightParen);
-            return Box::new(FunctionExpression { expr: factor, params });
-        }
+            let new_base = Box::new(FunctionExpression { expr: base, params });
+            self.callAndAccess(new_base)
+        } else {
+            base
+        };
 
-        factor
+        if let Some(Token::Dot) = self.current() {
+            self.advance();
+            match self.consume() {
+                Some(Token::Identifier(ident)) => {
+                    let new_base = Box::new(AccessExpression { expr, field: ident.to_owned() });
+                    self.callAndAccess(new_base)
+                }
+                Some(other) => panic!("Cannot access {:?}", other),
+                None => panic!("Unexpected EOF when parsing")
+            }
+        } else {
+            expr
+        }
     }
 }

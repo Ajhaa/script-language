@@ -5,6 +5,7 @@ mod statement;
 mod parser;
 mod environment;
 mod interpreter;
+mod object;
 
 use scanner::Scanner;
 use parser::Parser;
@@ -12,6 +13,7 @@ use expression::*;
 use statement::*;
 use environment::Environment;
 use interpreter::Interpreter;
+use object::Object;
 
 use std::env;
 use std::fs;
@@ -39,6 +41,15 @@ fn main() {
         Function::new(
             vec!["target".to_owned()],
             Rc::new(Box::new(WriteStatement { expr: Box::new(VariableExpression { identifier: "target".to_owned() }) })),
+            Rc::clone(&env.env)
+        )
+    ));
+
+    env.put_new("Object", ScriptValue::Function(
+        Function::new(
+            Vec::new(),
+            // Rc::new(Box::new(WriteStatement { expr: Box::new(VariableExpression { identifier: "target".to_owned() }) })),
+            Rc::new(Box::new(ExpressionStatement { expr: Box::new(ScriptValue::Object(Object::new()))})),
             Rc::clone(&env.env)
         )
     ));

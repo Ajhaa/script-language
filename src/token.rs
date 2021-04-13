@@ -30,6 +30,7 @@ pub enum Token {
     RightParen,
     Comma,
     Return,
+    Dot,
     // TODO better solution,
     Nothing
 }

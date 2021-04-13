@@ -66,6 +66,7 @@ impl<'a> Scanner<'a> {
             '{' => Token::LeftBracket,
             '}' => Token::RightBracket,
             ',' => Token::Comma,
+            '.' => Token::Dot,
             '=' => {
                 if let Some('=') = self.peek() {
                     self.consume();

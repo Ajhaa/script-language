@@ -1,6 +1,7 @@
 use crate::token::Token;
 use crate::environment::*;
 use crate::statement::*;
+use crate::object::*;
 use crate::interpreter::Interpreter;
 use std::fmt;
 use std::rc::Rc;
@@ -13,6 +14,7 @@ pub trait ExpressionVisitor {
     fn visit_multiplication(&mut self, expr: &MultiplicationExpression) -> ScriptValue;
     fn visit_condition(&mut self, expr: &ConditionExpression) -> ScriptValue;
     fn visit_function(&mut self, expr: &FunctionExpression) -> ScriptValue;
+    fn visit_access(&mut self, expr: &AccessExpression) -> ScriptValue;
 }
 
 pub struct Function {
@@ -62,6 +64,7 @@ pub enum ScriptValue {
     String(Rc<String>),
     Boolean(bool),
     Function(Rc<RefCell<Function>>),
+    Object(Rc<RefCell<Object>>),
     None,
     Unit
 }
@@ -126,6 +129,7 @@ impl fmt::Display for ScriptValue {
             ScriptValue::Boolean(b) => write!(f, "{}", b),
             ScriptValue::String(s) => write!(f, "{}", s),
             ScriptValue::Function(_) => write!(f, "Func"),
+            ScriptValue::Object(o) => write!(f, "{:?}", o.borrow().fields),
             ScriptValue::None => write!(f, "null"),
             ScriptValue::Unit => write!(f, "()")
         }        
@@ -134,6 +138,11 @@ impl fmt::Display for ScriptValue {
 
 pub trait Expression: fmt::Debug {
     fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue;
+
+    // Yucky hack
+    fn assign(&self, _: &mut Interpreter, _: ScriptValue) {
+        panic!("Cannot assign to {:?}", self);
+    }
 }
 // pub struct ValueExpression {
 //     pub value: ScriptValue
@@ -158,6 +167,10 @@ pub struct VariableExpression {
 impl Expression for VariableExpression {
     fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
         visitor.visit_variable(&self)
+    }
+
+    fn assign(&self, interpreter: &mut Interpreter, value: ScriptValue) {
+        interpreter.env.put(&self.identifier, value.clone());
     }
 }
 
@@ -210,6 +223,28 @@ pub struct FunctionExpression {
 impl Expression for FunctionExpression {
     fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
         visitor.visit_function(&self)
+    }
+}
+
+#[derive(Debug)]
+pub struct AccessExpression {
+    pub expr: Box<dyn Expression>,
+    pub field: String
+}
+
+impl Expression for AccessExpression {
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
+        visitor.visit_access(self)
+    }
+
+    fn assign(&self, interpreter: &mut Interpreter, value: ScriptValue) {
+        let target = self.expr.accept(interpreter);
+        match target {
+            ScriptValue::Object(obj) => {
+                obj.borrow_mut().set(self.field.clone(), value.clone());
+            },
+            _ => panic!("{:?} is not an object", target)
+        };
     }
 }
 
