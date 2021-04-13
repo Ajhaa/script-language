@@ -5,6 +5,11 @@ use crate::environment::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+pub trait ObjectLike: std::fmt::Debug {
+    fn get(&self, key: &str) -> Option<ScriptValue>;
+    fn set(&mut self, key: String, val: ScriptValue);  
+}
+
 #[derive(Debug)]
 pub struct Object {
     pub fields: HashMap<String, ScriptValue>
@@ -19,11 +24,7 @@ impl Object {
         )
     }
 
-    pub fn set(&mut self, key: String, value: ScriptValue) {
-        self.fields.insert(key, value);
-    }
-
-    pub fn set_ref(obj: Rc<RefCell<Object>>, key: String, value: ScriptValue) {
+    pub fn set_ref(obj: Rc<RefCell<dyn ObjectLike>>, key: String, value: ScriptValue) {
         let mut obj_ref = obj.borrow_mut();
         match value {
             ScriptValue::Function(func) => {
@@ -40,30 +41,43 @@ impl Object {
         }
     }
 
-    pub fn get(&self, key: &str) -> Option<ScriptValue> {
+    // pub fn get_ref(obj: Rc<RefCell<dyn ObjectLike>>, key: &str) -> Option<ScriptValue> {
+    //     match obj.borrow().get(key) {
+    //         Some(val) => Some(val.clone()),
+    //         None => None
+    //     }
+    // }
+}
+
+impl ObjectLike for Object {
+    fn set(&mut self, key: String, value: ScriptValue) {
+        self.fields.insert(key, value);
+    }
+
+    fn get(&self, key: &str) -> Option<ScriptValue> {
         match self.fields.get(key) {
             Some(val) => Some(val.clone()),
             None => None
         }
     }
+}
 
-    pub fn get_ref(obj: Rc<RefCell<Object>>, key: &str) -> Option<ScriptValue> {
-        match obj.borrow().fields.get(key) {
-            // insert self
-            // Some(ScriptValue::Function(func)) => {
-            //     let mut borrowed = func.borrow_mut();
-            //     // let mut env = borrowed.env.borrow_mut();
-            //     borrowed.env.enter();
-            //     borrowed.env.put_new("self", ScriptValue::Object(obj.clone()));
-            //     borrowed.env.exit();
+impl ObjectLike for String {
+    fn set(&mut self, _: String, _: ScriptValue) {
+        panic!("Cannot set field for immutable string");
+    }
 
-            //     Some(ScriptValue::Function(func.clone()))
-            // },
-            Some(val) => Some(val.clone()),
-            None => None
+    fn get(&self, key: &str) -> Option<ScriptValue> {
+        match key {
+            "length" => {
+                // Todo easy way to return functions?
+                Some(ScriptValue::Number(self.len() as f64))
+            },
+            _ => panic!("String has no property {}", key)
         }
     }
 }
+
 
 impl Drop for Object {
     fn drop(&mut self) {

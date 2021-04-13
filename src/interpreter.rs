@@ -162,7 +162,7 @@ impl ExpressionVisitor for Interpreter {
         let target = expr.expr.accept(self);
         match target {
             ScriptValue::Object(obj) => {
-                match Object::get_ref(obj, &expr.field) {
+                match obj.borrow().get(&expr.field) {
                     Some(val) => val,
                     None => panic!("Object has no property {}", &expr.field)
                 }

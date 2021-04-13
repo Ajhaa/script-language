@@ -63,10 +63,10 @@ impl Function {
 #[derive(Debug, Clone)]
 pub enum ScriptValue {
     Number(f64),
-    String(Rc<String>),
+    //String(Rc<RefCell<String>>),
     Boolean(bool),
     Function(Rc<RefCell<Function>>),
-    Object(Rc<RefCell<Object>>),
+    Object(Rc<RefCell<dyn ObjectLike>>),
     None,
     Unit
 }
@@ -129,9 +129,9 @@ impl fmt::Display for ScriptValue {
         match self {
             ScriptValue::Number(n) => write!(f, "{}", n),
             ScriptValue::Boolean(b) => write!(f, "{}", b),
-            ScriptValue::String(s) => write!(f, "{}", s),
+            //ScriptValue::String(s) => write!(f, "{}", s.borrow()),
             ScriptValue::Function(_) => write!(f, "Func"),
-            ScriptValue::Object(o) => write!(f, "{:?}", o.borrow().fields),
+            ScriptValue::Object(o) => write!(f, "{:?}", o),
             ScriptValue::None => write!(f, "null"),
             ScriptValue::Unit => write!(f, "()")
         }        
@@ -244,6 +244,7 @@ impl Expression for AccessExpression {
         match target {
             ScriptValue::Object(obj) => {
                 // obj.borrow_mut().set(self.field.clone(), value.clone());
+                // Object::set_ref(obj, self.field.clone(), value);
                 Object::set_ref(obj, self.field.clone(), value);
             },
             _ => panic!("{:?} is not an object", target)

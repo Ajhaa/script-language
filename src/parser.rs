@@ -3,6 +3,7 @@ use crate::expression::*;
 use crate::statement::*;
 
 use std::rc::Rc;
+use std::cell::RefCell;
 
 struct Tokens {
     input: Vec<Token>,
@@ -272,7 +273,7 @@ impl Parser {
 
         let factor: Box<dyn Expression> = match next {
             Token::Number(value) => Box::new(ScriptValue::Number(*value)),
-            Token::String(string) => Box::new(ScriptValue::String(Rc::new(string.to_owned()))),
+            Token::String(string) => Box::new(ScriptValue::Object(Rc::new(RefCell::new(string.to_owned())))),
             Token::Boolean(b) => Box::new(ScriptValue::Boolean(*b)),
             Token::None => Box::new(ScriptValue::None),
             Token::Identifier(identifier) => {
