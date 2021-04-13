@@ -20,7 +20,8 @@ pub trait ExpressionVisitor {
 pub struct Function {
     pub params: Vec<String>,
     pub body: Rc<Box<dyn Statement>>,
-    pub env: Rc<RefCell<Option<Env>>>
+    // pub env: Rc<RefCell<Option<Env>>>
+    pub env: Environment
 }
 
 impl fmt::Debug for Function {
@@ -31,11 +32,12 @@ impl fmt::Debug for Function {
 
 impl Function {
     pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Rc<RefCell<Option<Env>>>) -> Rc<RefCell<Function>> {
+        let env = Environment { env };
         Rc::new(RefCell::new(Function { params, body, env }))
     }
 
     pub fn call(&self, base: &mut Interpreter, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
-        let mut interpreter = Interpreter { env: Environment { env: Rc::clone(&self.env) }};
+        let mut interpreter = Interpreter { env: self.env.clone() };
         interpreter.env.enter();
         for i in 0 .. self.params.len() {
             let val = params[i].accept(base);
@@ -241,7 +243,8 @@ impl Expression for AccessExpression {
         let target = self.expr.accept(interpreter);
         match target {
             ScriptValue::Object(obj) => {
-                obj.borrow_mut().set(self.field.clone(), value.clone());
+                // obj.borrow_mut().set(self.field.clone(), value.clone());
+                Object::set_ref(obj, self.field.clone(), value);
             },
             _ => panic!("{:?} is not an object", target)
         };

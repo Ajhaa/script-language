@@ -1,6 +1,7 @@
 use crate::expression::*;
 use crate::statement::*;
 use crate::environment::*;
+use crate::object::*;
 
 use std::rc::Rc;
 
@@ -161,7 +162,7 @@ impl ExpressionVisitor for Interpreter {
         let target = expr.expr.accept(self);
         match target {
             ScriptValue::Object(obj) => {
-                match obj.borrow().get(&expr.field) {
+                match Object::get_ref(obj, &expr.field) {
                     Some(val) => val,
                     None => panic!("Object has no property {}", &expr.field)
                 }
