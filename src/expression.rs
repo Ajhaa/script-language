@@ -131,7 +131,7 @@ impl fmt::Display for ScriptValue {
             ScriptValue::Boolean(b) => write!(f, "{}", b),
             //ScriptValue::String(s) => write!(f, "{}", s.borrow()),
             ScriptValue::Function(_) => write!(f, "Func"),
-            ScriptValue::Object(o) => write!(f, "{:?}", o),
+            ScriptValue::Object(o) => write!(f, "{}", o.borrow()),
             ScriptValue::None => write!(f, "null"),
             ScriptValue::Unit => write!(f, "()")
         }        

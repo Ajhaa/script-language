@@ -4,8 +4,9 @@ use crate::environment::*;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::fmt::{Display, Debug, Formatter, Result};
 
-pub trait ObjectLike: std::fmt::Debug {
+pub trait ObjectLike: Debug + Display {
     fn get(&self, key: &str) -> Option<ScriptValue>;
     fn set(&mut self, key: String, val: ScriptValue);  
 }
@@ -59,6 +60,20 @@ impl ObjectLike for Object {
             Some(val) => Some(val.clone()),
             None => None
         }
+    }
+}
+
+impl Display for Object {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{{ ");
+
+        // for (key, value) in &self.fields {
+        //     write!(f, " {}: {},", key, value);
+        // };
+
+        write!(f, "{}", self.fields.iter().map(|(k, v)| format!("{}: {}", k, v)).collect::<Vec<_>>().join(", "));
+
+        write!(f, " }}")
     }
 }
 
