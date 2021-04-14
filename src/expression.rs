@@ -31,7 +31,7 @@ impl fmt::Debug for Function {
 }
 
 impl Function {
-    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Rc<RefCell<Option<Env>>>) -> Rc<RefCell<Function>> {
+    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Rc<RefCell<Env>>) -> Rc<RefCell<Function>> {
         let env = Environment { env };
         Rc::new(RefCell::new(Function { params, body, env }))
     }
