@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use crate::expression::*;
 use crate::statement::*;
-use crate::object::*;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -108,7 +107,7 @@ impl Environment {
         }
     }
 
-    pub fn dump(&self) -> HashMap<String, ScriptValue> {
+    pub fn _dump(&self) -> HashMap<String, ScriptValue> {
         let env = Rc::clone(&self.env);
 
         let previous = env.borrow();

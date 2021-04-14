@@ -129,7 +129,6 @@ impl fmt::Display for ScriptValue {
         match self {
             ScriptValue::Number(n) => write!(f, "{}", n),
             ScriptValue::Boolean(b) => write!(f, "{}", b),
-            //ScriptValue::String(s) => write!(f, "{}", s.borrow()),
             ScriptValue::Function(_) => write!(f, "Func"),
             ScriptValue::Object(o) => write!(f, "{}", o.borrow()),
             ScriptValue::None => write!(f, "null"),
@@ -141,26 +140,12 @@ impl fmt::Display for ScriptValue {
 pub trait Expression: fmt::Debug {
     fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue;
 
-    // Yucky hack
     fn assign(&self, _: &mut Interpreter, _: ScriptValue) {
         panic!("Cannot assign to {:?}", self);
     }
 }
-// pub struct ValueExpression {
-//     pub value: ScriptValue
-// }
 
-// impl Expression for ValueExpression {
-//     fn eval(&self, _env: &mut Environment) -> ScriptValue {
-//         self.value
-//     }
-// }
 
-// impl ValueExpression {
-//     fn number(num: f64) -> ValueExpression {
-//         ValueExpression { value: ScriptValue::Number(num) }
-//     }
-// }
 #[derive(Debug)]
 pub struct VariableExpression {
     pub identifier: String
@@ -251,20 +236,3 @@ impl Expression for AccessExpression {
         };
     }
 }
-
-// pub struct AssignmentExpression {
-//     pub left: Box<dyn Expression>,
-//     pub right: Box<dyn Expression>
-// }
-
-// impl Expression for AssignmentExpression {
-//     fn eval(&self, env: &mut Environment) -> ScriptValue {
-//         if let VariableExpression = self.left {
-
-//         }
-//         // let val = self.expr.eval(env);
-//         // env.put(&self.identifier, Some(val));
-
-//         // val
-//     }
-// }

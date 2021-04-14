@@ -1,6 +1,5 @@
 use crate::expression::*;
 use crate::interpreter::*;
-use crate::environment::*;
 
 use std::rc::Rc;
 
@@ -15,7 +14,6 @@ pub trait StatementVisitor {
     fn visit_return(&mut self, stmt: &ReturnStatement) -> StatementValue;
     fn visit_write(&mut self, stmt: &WriteStatement) -> StatementValue;
     fn visit_internal(&mut self, stmt: &InternalStatement) -> StatementValue;
-    
 }
 
 pub enum StatementValue {

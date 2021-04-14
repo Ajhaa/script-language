@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use crate::expression::*;
-use crate::environment::*;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -41,13 +40,6 @@ impl Object {
             _ => obj_ref.set(key, value)
         }
     }
-
-    // pub fn get_ref(obj: Rc<RefCell<dyn ObjectLike>>, key: &str) -> Option<ScriptValue> {
-    //     match obj.borrow().get(key) {
-    //         Some(val) => Some(val.clone()),
-    //         None => None
-    //     }
-    // }
 }
 
 impl ObjectLike for Object {
@@ -65,13 +57,9 @@ impl ObjectLike for Object {
 
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{{ ");
+        write!(f, "{{ ")?;
 
-        // for (key, value) in &self.fields {
-        //     write!(f, " {}: {},", key, value);
-        // };
-
-        write!(f, "{}", self.fields.iter().map(|(k, v)| format!("{}: {}", k, v)).collect::<Vec<_>>().join(", "));
+        write!(f, "{}", self.fields.iter().map(|(k, v)| format!("{}: {}", k, v)).collect::<Vec<_>>().join(", "))?;
 
         write!(f, " }}")
     }

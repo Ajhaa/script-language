@@ -17,7 +17,6 @@ use object::Object;
 
 use std::env;
 use std::fs;
-use std::rc::Rc;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

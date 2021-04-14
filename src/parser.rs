@@ -30,11 +30,11 @@ impl Tokens {
         self.input.get(self.index)
     }
 
-    pub fn peek(&self) -> Option<&Token> {
+    pub fn _peek(&self) -> Option<&Token> {
         self.input.get(self.index + 1)
     }
 
-    pub fn skip(&mut self, amount: usize) -> Option<&Token> {
+    pub fn _skip(&mut self, amount: usize) -> Option<&Token> {
         self.index += amount;
         self.current()
     }
@@ -74,8 +74,8 @@ impl Parser {
         return self.input.current();
     }
 
-    fn lookahead(&mut self) -> Option<&Token> {
-        return self.input.peek();
+    fn _lookahead(&mut self) -> Option<&Token> {
+        return self.input._peek();
     }
 
     // fn reset_peek(&mut self) {
@@ -90,8 +90,8 @@ impl Parser {
         self.input.consume()
     }
     
-    fn skip(&mut self, amount: usize) -> Option<&Token> {
-        self.input.skip(amount)
+    fn _skip(&mut self, amount: usize) -> Option<&Token> {
+        self.input._skip(amount)
     }
 
     fn statement(&mut self) -> Box<dyn Statement> {

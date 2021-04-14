@@ -1,5 +1,5 @@
-Function member functions should be unique, and not affect the original function
+Check all clone
 
-drop, bind, environment, ObjectLike trait
+Make a object pretty printer
 
-Too much clone
+Clean up parser methods
