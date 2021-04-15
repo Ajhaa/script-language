@@ -1,11 +1,19 @@
 use crate::token::Token;
-use crate::environment::*;
-use crate::statement::*;
+use crate::function::*;
 use crate::object::*;
 use crate::interpreter::Interpreter;
 use std::fmt;
 use std::rc::Rc;
 use std::cell::RefCell;
+
+
+pub trait Expression: fmt::Debug {
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue;
+
+    fn assign(&self, _: &mut Interpreter, _: ScriptValue) {
+        panic!("Cannot assign to {:?}", self);
+    }
+}
 
 pub trait ExpressionVisitor {
     fn visit_variable(&mut self, expr: &VariableExpression) -> ScriptValue;
@@ -18,49 +26,6 @@ pub trait ExpressionVisitor {
     fn visit_index(&mut self, expr: &IndexExpression) -> ScriptValue;
 }
 
-pub struct Function {
-    pub params: Vec<String>,
-    pub body: Rc<Box<dyn Statement>>,
-    // pub env: Rc<RefCell<Option<Env>>>
-    pub env: Environment
-}
-
-impl fmt::Debug for Function {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Func({})", self.params.join(","))
-    }
-}
-
-impl Function {
-    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Rc<RefCell<Env>>) -> Rc<RefCell<Function>> {
-        let env = Environment { env };
-        Rc::new(RefCell::new(Function { params, body, env }))
-    }
-
-    pub fn call(&self, base: &mut Interpreter, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
-        let mut interpreter = Interpreter { env: self.env.clone() };
-        interpreter.env.enter();
-        for i in 0 .. self.params.len() {
-            let val = params[i].accept(base);
-            let key = self.params[i].clone();
-            interpreter.env.put_new(&key, val);
-        }
-        let val = (*self.body).accept(&mut interpreter);
-        interpreter.env.exit();
-        match val {
-            StatementValue::Normal(x) => x,
-            StatementValue::Return(x) => x 
-        }
-    }
-}
-
-// impl std::clone::Clone for Function {
-//     fn clone(&self) -> Function {
-//         Function { body: self.body }
-//     }
-// }
-
-// pub type ScriptValue = f64;
 #[derive(Debug, Clone)]
 pub enum ScriptValue {
     Number(f64),
@@ -140,15 +105,6 @@ impl fmt::Display for ScriptValue {
         }        
     }
 }
-
-pub trait Expression: fmt::Debug {
-    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue;
-
-    fn assign(&self, _: &mut Interpreter, _: ScriptValue) {
-        panic!("Cannot assign to {:?}", self);
-    }
-}
-
 
 #[derive(Debug)]
 pub struct VariableExpression {

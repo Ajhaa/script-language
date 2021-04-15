@@ -1,6 +1,7 @@
-use std::collections::HashMap;
 use crate::expression::*;
+use crate::function::*;
 
+use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::fmt::{Display, Debug, Formatter, Result};

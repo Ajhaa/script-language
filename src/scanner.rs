@@ -41,7 +41,18 @@ impl<'a> Scanner<'a> {
         self.input.next()
     }
 
-    pub fn scan(&mut self) -> Vec<Token> {
+    fn match_or(&mut self, should: char, result: Token, default: Token) -> Token {
+        if let Some(token) = self.peek() {
+            if token == &should {
+                self.consume();
+                return result
+            }
+        }
+
+        default
+    }
+
+    pub fn scan(mut self) -> Vec<Token> {
         loop {
             if let Some(token) = self.next_token() {
                 self.tokens.push(token);
@@ -50,7 +61,7 @@ impl<'a> Scanner<'a> {
                 break;
             }
         }
-        self.tokens.clone()
+        self.tokens
     }
 
     fn next_token(&mut self) -> Option<Token> {
@@ -70,37 +81,23 @@ impl<'a> Scanner<'a> {
             ',' => Token::Comma,
             '.' => Token::Dot,
             '=' => {
-                if let Some('=') = self.peek() {
-                    self.consume();
-                    Token::Equals
-                } else {
-                    Token::Assign
-                }
+                self.match_or('=', Token::Equals, Token::Assign)
             },
             '<' => {
-                if let Some('=') = self.peek() {
-                    self.consume();
-                    Token::EqLesser
-                } else {
-                    Token::Lesser
-                }
+                self.match_or('=', Token::EqLesser, Token::Lesser)
             },
             '>' => {
-                if let Some('=') = self.peek() {
-                    self.consume();
-                    Token::EqGreater
-                } else {
-                    Token::Greater
-                }
+                self.match_or('=', Token::EqGreater, Token::Greater)
             },
             '!' => {
-                if let Some('=') = self.peek() {
-                    self.consume();
-                    Token::NotEquals
-                } else {
-                    Token::Not
-                }
+                self.match_or('=', Token::NotEquals, Token::Not)
             },
+            '&' => {
+                self.match_or('&', Token::And, Token::BitAnd)
+            }
+            '|' => {
+                self.match_or('|', Token::Or, Token::BitOr)
+            }
             //'\n' => Token::LineBreak,
             'A'..='Z' | 'a'..='z' | '_' => self.word(next),
             '0'..='9' => self.number(next),

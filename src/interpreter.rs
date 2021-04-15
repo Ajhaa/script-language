@@ -1,6 +1,7 @@
 use crate::expression::*;
 use crate::statement::*;
 use crate::environment::*;
+use crate::function::*;
 
 use std::rc::Rc;
 

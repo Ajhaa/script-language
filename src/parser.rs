@@ -1,44 +1,10 @@
-use crate::token::{Token, Should};
+use crate::token::*;
 use crate::expression::*;
 use crate::statement::*;
 
 use std::rc::Rc;
 use std::cell::RefCell;
 
-struct Tokens {
-    input: Vec<Token>,
-    index: usize
-}
-
-impl Tokens {
-    pub fn new(vec: Vec<Token>) -> Tokens {
-        Tokens { input: vec, index: 0 }
-    }
-
-    pub fn current(&self) -> Option<&Token> {
-        self.input.get(self.index)
-    }
-
-    pub fn consume(&mut self) -> Option<&Token> {
-        let curr = self.index;
-        self.index += 1;
-        self.input.get(curr)
-    }
-
-    pub fn advance(&mut self) -> Option<&Token> {
-        self.index += 1;
-        self.input.get(self.index)
-    }
-
-    pub fn _peek(&self) -> Option<&Token> {
-        self.input.get(self.index + 1)
-    }
-
-    pub fn _skip(&mut self, amount: usize) -> Option<&Token> {
-        self.index += amount;
-        self.current()
-    }
-}
 
 type Program = Vec<Box<dyn Statement>>;
 

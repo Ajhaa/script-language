@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use crate::expression::*;
 use crate::statement::*;
+use crate::function::*;
 
 use std::cell::RefCell;
 use std::rc::Rc;
