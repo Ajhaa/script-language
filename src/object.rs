@@ -80,10 +80,3 @@ impl ObjectLike for String {
         }
     }
 }
-
-
-impl Drop for Object {
-    fn drop(&mut self) {
-        println!("Object dropped");
-    }
-}

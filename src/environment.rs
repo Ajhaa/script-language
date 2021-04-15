@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 pub struct Env {
     pub variables: HashMap<String, ScriptValue>,
-    pub parent: Rc<RefCell<Option<Env>>>
+    pub parent: Option<Rc<RefCell<Env>>>
 }
 
 impl Env {
@@ -17,13 +17,13 @@ impl Env {
                 self.variables.insert(key, value);
             },
             None => {
-                let mut parent = self.parent.borrow_mut();
-                match &mut *parent {
+                match &self.parent {
                     Some(env) => {
-                        env.put(key, value);
+                        let mut parent = env.borrow_mut();
+                        parent.put(key, value);
                     },
                     None => panic!("Variable {} not defined", key)
-                };
+                }
             }
         };
     }
@@ -36,10 +36,10 @@ impl Env {
         match self.variables.get(key) {
             Some(val) => return Some(val.clone()),
             None => {
-                let parent = self.parent.borrow();
-                match &*parent {
+                match &self.parent {
                     Some(env) => {
-                        env.get(key)
+                        let parent = env.borrow();
+                        parent.get(key)
                     },
                     None => None
                 }
@@ -50,71 +50,52 @@ impl Env {
 
 #[derive(Clone)]
 pub struct Environment {
-    //pub variables: HashMap<String, ScriptValue>
-    pub env: Rc<RefCell<Option<Env>>>
-}
+    pub env: Rc<RefCell<Env>>
+} 
 
 impl Environment {
     pub fn new() -> Environment {
-        let parent =  Rc::new(RefCell::new(None));
-        let env = Rc::new(RefCell::new(Some(Env {variables: HashMap::new(), parent })));
+        let parent = None;
+        let env = Rc::new(RefCell::new(Env {variables: HashMap::new(), parent }));
         Environment { env }
     }
 
     pub fn enter(&mut self) {
-        let parent = Rc::clone(&self.env);
-        let next = Rc::new(RefCell::new(Some(Env {variables: HashMap::new(), parent })));
+        let parent = Some(Rc::clone(&self.env));
+        let next = Rc::new(RefCell::new(Env {variables: HashMap::new(), parent }));
         self.env = next;
     }
 
     pub fn exit(&mut self) {
         let env = Rc::clone(&self.env);
-        let previous = env.borrow();
-        match &*previous {
-            Some(env) => self.env = Rc::clone(&env.parent),
+        let current = env.borrow();
+
+        match &current.parent {
+            Some(env) => {
+                self.env = Rc::clone(&env);
+            }
             None => panic!("ASDAS")
         }
     }
 
     pub fn put(&mut self, key: &str, val: ScriptValue) {
-        let env = Rc::clone(&self.env);
-        let mut previous = env.borrow_mut();
-
-        match &mut *previous {
-            Some(e) => e.put(key.to_owned(), val),
-            None => panic!("ASDAS")
-        }
-           
+        let mut env = self.env.borrow_mut();
+        env.put(key.to_owned(), val);
     }
 
     pub fn put_new(&mut self, key: &str, val: ScriptValue) {
-        let env = Rc::clone(&self.env);
-        let mut previous = env.borrow_mut();
-
-        match &mut *previous {
-            Some(e) => e.put_new(key.to_owned(), val),
-            None => panic!("ASDAS")
-        }   
+        let mut env = self.env.borrow_mut();
+        env.put_new(key.to_owned(), val);
     }
 
     pub fn get(&self, key: &str) -> Option<ScriptValue> {
-        let env = Rc::clone(&self.env);
-        let previous = env.borrow();
-
-        match &*previous {
-            Some(e) => e.get(key),
-            None => panic!("ASDAS")
-        }
+        let env = self.env.borrow();
+        env.get(key)
     }
 
     pub fn _dump(&self) -> HashMap<String, ScriptValue> {
-        let env = Rc::clone(&self.env);
-
-        let previous = env.borrow();
-        match &*previous {
-            Some(e) => e.variables.clone(),
-            None => panic!("ASDAS")
-        }
+        let env = self.env.borrow();
+        env.variables.clone()
     }
 
     pub fn create_internal_function(&mut self, name: &str, params: Vec<&str>, func: InternalFunction) {

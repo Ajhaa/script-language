@@ -9,7 +9,7 @@ def run_and_compare(file, res_should):
         assert split == res_should
         return True
     except:
-        print('%s test failed: %r != %r' % (file, split, res_should))
+        print('%s test failed: %r != %r' % (file, split[0:-1], res_should[0:-1]))
         return False
 
 
