@@ -3,3 +3,5 @@ Check all clone
 Make a object pretty printer
 
 Clean up parser methods
+
+Easier way to call internal functions

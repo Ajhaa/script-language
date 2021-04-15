@@ -65,6 +65,8 @@ impl<'a> Scanner<'a> {
             ')' => Token::RightParen,
             '{' => Token::LeftBracket,
             '}' => Token::RightBracket,
+            '[' => Token::LeftBrace,
+            ']' => Token::RightBrace,
             ',' => Token::Comma,
             '.' => Token::Dot,
             '=' => {

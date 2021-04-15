@@ -117,10 +117,10 @@ impl Environment {
         }
     }
 
-    pub fn create_internal_function(&mut self, name: &str, params: Vec<String>, func: InternalFunction) {
+    pub fn create_internal_function(&mut self, name: &str, params: Vec<&str>, func: InternalFunction) {
         self.put_new(name, ScriptValue::Function(
             Function::new(
-                params,
+                params.iter().map(|e| e.to_string()).collect(),
                 Rc::new(Box::new(
                     InternalStatement {
                         func

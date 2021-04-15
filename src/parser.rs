@@ -273,14 +273,13 @@ impl Parser {
 
         let factor: Box<dyn Expression> = match next {
             Token::Number(value) => Box::new(ScriptValue::Number(*value)),
-            Token::String(string) => Box::new(ScriptValue::Object(Rc::new(RefCell::new(string.to_owned())))),
+            Token::String(string) => Box::new(ScriptValue::String(Rc::new(RefCell::new(string.to_owned())))),
             Token::Boolean(b) => Box::new(ScriptValue::Boolean(*b)),
             Token::None => Box::new(ScriptValue::None),
             Token::Identifier(identifier) => {
                 let ident = identifier.to_owned();
                
                 Box::new(VariableExpression { identifier: ident })
-                
             }
             Token::LeftParen => {
                 let expr = self.expression();
@@ -294,7 +293,7 @@ impl Parser {
     }
 
     fn call_and_access(&mut self, base: Box<dyn Expression>) -> Box<dyn Expression> {
-        let expr = if let Some(Token::LeftParen) = self.current() {
+        let call = if let Some(Token::LeftParen) = self.current() {
             self.advance();
             let mut params = Vec::new();
             while let Some(token) = self.current() {
@@ -318,18 +317,29 @@ impl Parser {
             base
         };
 
+        let index = if let Some(Token::LeftBrace) = self.current() {
+            self.advance();
+            let index_expr = self.expression();
+            self.consume().should_be(&Token::RightBrace);
+
+            let new_base = Box::new(IndexExpression { expr: call, index_expr });
+            self.call_and_access(new_base)
+        } else {
+            call
+        };
+
         if let Some(Token::Dot) = self.current() {
             self.advance();
             match self.consume() {
                 Some(Token::Identifier(ident)) => {
-                    let new_base = Box::new(AccessExpression { expr, field: ident.to_owned() });
+                    let new_base = Box::new(AccessExpression { expr: index, field: ident.to_owned() });
                     self.call_and_access(new_base)
                 }
                 Some(other) => panic!("Cannot access {:?}", other),
                 None => panic!("Unexpected EOF when parsing")
             }
         } else {
-            expr
+            index
         }
     }
 }

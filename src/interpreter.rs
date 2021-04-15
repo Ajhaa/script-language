@@ -169,4 +169,19 @@ impl ExpressionVisitor for Interpreter {
             _ => panic!("{:?} is not an object", target)
         }
     }
+
+    fn visit_index(&mut self, expr: &IndexExpression) -> ScriptValue {
+        let target = expr.expr.accept(self);
+        match target {
+            ScriptValue::List(list) => {
+                let index = expr.index_expr.accept(self);
+
+                match index {
+                    ScriptValue::Number(n) => list.borrow()[n as usize].clone(),
+                    _ => panic!("Index has to be a number, not {:?}", index)
+                }
+            },
+            _ => panic!("Cannot index {:?}", target)
+        }
+    }
 }

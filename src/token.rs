@@ -28,6 +28,8 @@ pub enum Token {
     RightBracket,
     LeftParen,
     RightParen,
+    LeftBrace,
+    RightBrace,
     Comma,
     Return,
     Dot,

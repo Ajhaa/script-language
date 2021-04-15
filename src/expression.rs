@@ -15,6 +15,7 @@ pub trait ExpressionVisitor {
     fn visit_condition(&mut self, expr: &ConditionExpression) -> ScriptValue;
     fn visit_function(&mut self, expr: &FunctionExpression) -> ScriptValue;
     fn visit_access(&mut self, expr: &AccessExpression) -> ScriptValue;
+    fn visit_index(&mut self, expr: &IndexExpression) -> ScriptValue;
 }
 
 pub struct Function {
@@ -63,10 +64,11 @@ impl Function {
 #[derive(Debug, Clone)]
 pub enum ScriptValue {
     Number(f64),
-    //String(Rc<RefCell<String>>),
+    String(Rc<RefCell<String>>),
     Boolean(bool),
     Function(Rc<RefCell<Function>>),
     Object(Rc<RefCell<dyn ObjectLike>>),
+    List(Rc<RefCell<Vec<ScriptValue>>>),
     None,
     Unit
 }
@@ -131,6 +133,8 @@ impl fmt::Display for ScriptValue {
             ScriptValue::Boolean(b) => write!(f, "{}", b),
             ScriptValue::Function(_) => write!(f, "Func"),
             ScriptValue::Object(o) => write!(f, "{}", o.borrow()),
+            ScriptValue::String(s) => write!(f, "{}", s.borrow()),
+            ScriptValue::List(l) => write!(f, "{:?}", *l.borrow()),
             ScriptValue::None => write!(f, "null"),
             ScriptValue::Unit => write!(f, "()")
         }        
@@ -231,6 +235,34 @@ impl Expression for AccessExpression {
                 // obj.borrow_mut().set(self.field.clone(), value.clone());
                 // Object::set_ref(obj, self.field.clone(), value);
                 Object::set_ref(obj, self.field.clone(), value);
+            },
+            _ => panic!("{:?} is not an object", target)
+        };
+    }
+}
+
+#[derive(Debug)]
+pub struct IndexExpression {
+    pub expr: Box<dyn Expression>,
+    pub index_expr: Box<dyn Expression>
+}
+
+impl Expression for IndexExpression {
+    fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue {
+        visitor.visit_index(self)
+    }
+
+    fn assign(&self, interpreter: &mut Interpreter, value: ScriptValue) {
+        let target = self.expr.accept(interpreter);
+        match target {
+            ScriptValue::List(list) => {
+                let index = self.index_expr.accept(interpreter);
+                match index {
+                    ScriptValue::Number(n) => {
+                        list.borrow_mut()[n as usize] = value;
+                    },
+                    _ => panic!("Cannot use {} as index", index)
+                }
             },
             _ => panic!("{:?} is not an object", target)
         };

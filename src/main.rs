@@ -15,8 +15,14 @@ use environment::Environment;
 use interpreter::Interpreter;
 use object::Object;
 
+use std::io::prelude::*;
 use std::env;
 use std::fs;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::net::TcpListener;
+use std::net::TcpStream;
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -36,7 +42,7 @@ fn main() {
 
     let mut env = Environment::new();
 
-    env.create_internal_function("print", vec!["target".to_owned()],
+    env.create_internal_function("print", vec!["target"],
         |inpr| {
             let val = inpr.env.get("target").unwrap();
             println!("{}", val);
@@ -48,6 +54,42 @@ fn main() {
         |_| {
             StatementValue::Normal(
                 ScriptValue::Object(Object::new())
+            )
+        }
+    );
+
+    env.create_internal_function("List", vec!["size"], 
+        |inpr| {
+            let size = match inpr.env.get("size") {
+                Some(ScriptValue::Number(n)) => n as usize,
+                Some(other) => panic!("Not a size {:?}", other),
+                None => 0
+            };
+
+            StatementValue::Normal(
+                ScriptValue::List(Rc::new(RefCell::new(vec!(ScriptValue::None; size))))
+            )
+        }
+    );
+
+    env.create_internal_function("map", vec!["func", "list"],
+        |inpr| {
+            let func = match inpr.env.get("func") {
+                Some(ScriptValue::Function(f)) => f,
+                Some(other) => panic!("Not a function {:?}", other),
+                None => panic!("Expected args")
+            };
+
+            let list = match inpr.env.get("list") {
+                Some(ScriptValue::List(l)) => l,
+                Some(other) => panic!("Not a list {:?}", other),
+                None => panic!("Expected 2 args")
+            };
+
+            let mapped: Vec<ScriptValue> = list.borrow().iter().map(|e| func.borrow_mut().call(inpr, &vec![Box::new(e.clone()) as Box<dyn Expression>])).collect();
+
+            StatementValue::Normal(
+                ScriptValue::List(Rc::new(RefCell::new(mapped)))
             )
         }
     );
