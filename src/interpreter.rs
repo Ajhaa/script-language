@@ -1,12 +1,12 @@
-use crate::expression::*;
-use crate::statement::*;
 use crate::environment::*;
+use crate::expression::*;
 use crate::function::*;
+use crate::statement::*;
 
 use std::rc::Rc;
 
 pub struct Interpreter {
-    pub env: Environment
+    pub env: Environment,
 }
 
 impl Interpreter {
@@ -22,11 +22,11 @@ impl StatementVisitor for Interpreter {
         let value = stmt.expr.accept(self);
 
         stmt.assignee.assign(self, value);
-        
+
         StatementValue::Normal(ScriptValue::Unit)
     }
 
-    fn visit_declaration(&mut self, stmt: &DeclarationStatement) -> StatementValue {  
+    fn visit_declaration(&mut self, stmt: &DeclarationStatement) -> StatementValue {
         let value = if let Some(expr) = &stmt.initializer {
             expr.accept(self)
         } else {
@@ -48,7 +48,7 @@ impl StatementVisitor for Interpreter {
                 continue;
             } else {
                 self.env.exit();
-                return ret
+                return ret;
             }
         }
 
@@ -57,10 +57,13 @@ impl StatementVisitor for Interpreter {
         StatementValue::Normal(ScriptValue::Unit)
     }
 
-    // TODO function env
     fn visit_function(&mut self, stmt: &FunctionStatement) -> StatementValue {
         self.env.enter();
-        let func = Function::new(stmt.params.clone(), stmt.body.clone(), Rc::clone(&self.env.env));
+        let func = Function::new(
+            stmt.params.clone(),
+            stmt.body.clone(),
+            Rc::clone(&self.env.env),
+        );
         self.env.exit();
         self.env.put_new(&stmt.name, ScriptValue::Function(func));
 
@@ -81,7 +84,7 @@ impl StatementVisitor for Interpreter {
         while let ScriptValue::Boolean(true) = stmt.condition.accept(self) {
             let res = stmt.body.accept(self);
             if let StatementValue::Return(_) = res {
-                return res
+                return res;
             }
         }
 
@@ -96,18 +99,9 @@ impl StatementVisitor for Interpreter {
         StatementValue::Normal(stmt.expr.accept(self))
     }
 
-    fn visit_write(&mut self, stmt: &WriteStatement) -> StatementValue {
-        let val = stmt.expr.accept(self);
-        // TODO possible to print without ln?
-        println!("{}", val);
-
-        StatementValue::Normal(ScriptValue::Unit)
-    }
-
     fn visit_internal(&mut self, stmt: &InternalStatement) -> StatementValue {
         (stmt.func)(self)
     }
-
 }
 
 impl ExpressionVisitor for Interpreter {
@@ -130,7 +124,7 @@ impl ExpressionVisitor for Interpreter {
     fn visit_variable(&mut self, expr: &VariableExpression) -> ScriptValue {
         match self.env.get(&expr.identifier) {
             Some(var) => var.clone(),
-            None => panic!("variable not found {}", &expr.identifier)
+            None => panic!("variable not found {}", &expr.identifier),
         }
     }
 
@@ -151,8 +145,8 @@ impl ExpressionVisitor for Interpreter {
                 let ret = f.call(self, &expr.params);
                 // wrapper.exit();
                 ret
-            },
-            _ => panic!("Cannot call {:?}", target)
+            }
+            _ => panic!("Cannot call {:?}", target),
         };
         self.env.exit();
         val
@@ -161,13 +155,11 @@ impl ExpressionVisitor for Interpreter {
     fn visit_access(&mut self, expr: &AccessExpression) -> ScriptValue {
         let target = expr.expr.accept(self);
         match target {
-            ScriptValue::Object(obj) => {
-                match obj.borrow().get(&expr.field) {
-                    Some(val) => val,
-                    None => panic!("Object has no property {}", &expr.field)
-                }
+            ScriptValue::Object(obj) => match obj.borrow().get(&expr.field) {
+                Some(val) => val,
+                None => panic!("Object has no property {}", &expr.field),
             },
-            _ => panic!("{:?} is not an object", target)
+            _ => panic!("{:?} is not an object", target),
         }
     }
 
@@ -179,10 +171,10 @@ impl ExpressionVisitor for Interpreter {
 
                 match index {
                     ScriptValue::Number(n) => list.borrow()[n as usize].clone(),
-                    _ => panic!("Index has to be a number, not {:?}", index)
+                    _ => panic!("Index has to be a number, not {:?}", index),
                 }
-            },
-            _ => panic!("Cannot index {:?}", target)
+            }
+            _ => panic!("Cannot index {:?}", target),
         }
     }
 }

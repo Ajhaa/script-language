@@ -1,11 +1,10 @@
-use crate::token::Token;
 use crate::function::*;
-use crate::object::*;
 use crate::interpreter::Interpreter;
+use crate::object::*;
+use crate::token::Token;
+use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
-use std::cell::RefCell;
-
 
 pub trait Expression: fmt::Debug {
     fn accept(&self, visitor: &mut dyn ExpressionVisitor) -> ScriptValue;
@@ -35,12 +34,11 @@ pub enum ScriptValue {
     Object(Rc<RefCell<dyn ObjectLike>>),
     List(Rc<RefCell<Vec<ScriptValue>>>),
     None,
-    Unit
+    Unit,
 }
 
 impl ScriptValue {
-    // TODO better name
-    pub fn numeric(&self, other: ScriptValue, operator: Token) -> ScriptValue { 
+    pub fn numeric(&self, other: ScriptValue, operator: Token) -> ScriptValue {
         match (self, &other) {
             (ScriptValue::Number(left), ScriptValue::Number(right)) => {
                 let result = match operator {
@@ -48,36 +46,32 @@ impl ScriptValue {
                     Token::Minus => left - right,
                     Token::Star => left * right,
                     Token::Slash => left / right,
-                    _ => panic!("Impossible addition")
+                    _ => panic!("Impossible addition"),
                 };
 
                 ScriptValue::Number(result)
-            },
-            _ => panic!("Cannot {:?} {:?} and {:?}", operator, self, other)
+            }
+            _ => panic!("Cannot {:?} {:?} and {:?}", operator, self, other),
         }
     }
 
     pub fn boolean(&self, other: ScriptValue, operator: Token) -> ScriptValue {
         let result = match (self, &other) {
-            (ScriptValue::Number(left), ScriptValue::Number(right)) => {
-                match operator {
-                    Token::Equals => left == right,
-                    Token::NotEquals => left != right,
-                    Token::Lesser => left < right,
-                    Token::Greater => left > right,
-                    Token::EqLesser => left <= right,
-                    Token::EqGreater => left >= right,
-                    _ => panic!("Impossible boolean operation")
-                }
+            (ScriptValue::Number(left), ScriptValue::Number(right)) => match operator {
+                Token::Equals => left == right,
+                Token::NotEquals => left != right,
+                Token::Lesser => left < right,
+                Token::Greater => left > right,
+                Token::EqLesser => left <= right,
+                Token::EqGreater => left >= right,
+                _ => panic!("Impossible boolean operation"),
             },
-            (ScriptValue::Boolean(left), ScriptValue::Boolean(right)) => {
-                match operator {
-                    Token::Equals => left == right,
-                    Token::NotEquals => left != right,
-                    _ => panic!("Impossible boolean operation")
-                }
-            }
-            _ => panic!("Cannot compare {:?} and {:?}", self, other)
+            (ScriptValue::Boolean(left), ScriptValue::Boolean(right)) => match operator {
+                Token::Equals => left == right,
+                Token::NotEquals => left != right,
+                _ => panic!("Impossible boolean operation"),
+            },
+            _ => panic!("Cannot compare {:?} and {:?}", self, other),
         };
 
         ScriptValue::Boolean(result)
@@ -90,7 +84,6 @@ impl Expression for ScriptValue {
     }
 }
 
-
 impl fmt::Display for ScriptValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -101,14 +94,14 @@ impl fmt::Display for ScriptValue {
             ScriptValue::String(s) => write!(f, "{}", s.borrow()),
             ScriptValue::List(l) => write!(f, "{:?}", *l.borrow()),
             ScriptValue::None => write!(f, "null"),
-            ScriptValue::Unit => write!(f, "()")
-        }        
+            ScriptValue::Unit => write!(f, "()"),
+        }
     }
 }
 
 #[derive(Debug)]
 pub struct VariableExpression {
-    pub identifier: String
+    pub identifier: String,
 }
 
 impl Expression for VariableExpression {
@@ -125,7 +118,7 @@ impl Expression for VariableExpression {
 pub struct ConditionExpression {
     pub left: Box<dyn Expression>,
     pub right: Box<dyn Expression>,
-    pub operator: Token
+    pub operator: Token,
 }
 
 impl Expression for ConditionExpression {
@@ -138,7 +131,7 @@ impl Expression for ConditionExpression {
 pub struct AdditionExpression {
     pub left: Box<dyn Expression>,
     pub right: Box<dyn Expression>,
-    pub operator: Token
+    pub operator: Token,
 }
 
 impl Expression for AdditionExpression {
@@ -151,7 +144,7 @@ impl Expression for AdditionExpression {
 pub struct MultiplicationExpression {
     pub left: Box<dyn Expression>,
     pub right: Box<dyn Expression>,
-    pub operator: Token
+    pub operator: Token,
 }
 
 impl Expression for MultiplicationExpression {
@@ -160,11 +153,10 @@ impl Expression for MultiplicationExpression {
     }
 }
 
-
 #[derive(Debug)]
 pub struct FunctionExpression {
     pub expr: Box<dyn Expression>,
-    pub params: Vec<Box<dyn Expression>>
+    pub params: Vec<Box<dyn Expression>>,
 }
 
 impl Expression for FunctionExpression {
@@ -176,7 +168,7 @@ impl Expression for FunctionExpression {
 #[derive(Debug)]
 pub struct AccessExpression {
     pub expr: Box<dyn Expression>,
-    pub field: String
+    pub field: String,
 }
 
 impl Expression for AccessExpression {
@@ -188,11 +180,9 @@ impl Expression for AccessExpression {
         let target = self.expr.accept(interpreter);
         match target {
             ScriptValue::Object(obj) => {
-                // obj.borrow_mut().set(self.field.clone(), value.clone());
-                // Object::set_ref(obj, self.field.clone(), value);
                 Object::set_ref(obj, self.field.clone(), value);
-            },
-            _ => panic!("{:?} is not an object", target)
+            }
+            _ => panic!("{:?} is not an object", target),
         };
     }
 }
@@ -200,7 +190,7 @@ impl Expression for AccessExpression {
 #[derive(Debug)]
 pub struct IndexExpression {
     pub expr: Box<dyn Expression>,
-    pub index_expr: Box<dyn Expression>
+    pub index_expr: Box<dyn Expression>,
 }
 
 impl Expression for IndexExpression {
@@ -216,11 +206,11 @@ impl Expression for IndexExpression {
                 match index {
                     ScriptValue::Number(n) => {
                         list.borrow_mut()[n as usize] = value;
-                    },
-                    _ => panic!("Cannot use {} as index", index)
+                    }
+                    _ => panic!("Cannot use {} as index", index),
                 }
-            },
-            _ => panic!("{:?} is not an object", target)
+            }
+            _ => panic!("{:?} is not an object", target),
         };
     }
 }

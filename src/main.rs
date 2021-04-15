@@ -1,23 +1,22 @@
-mod token;
-mod scanner;
-mod expression;
-mod statement;
-mod parser;
+mod builtin;
 mod environment;
+mod expression;
+mod function;
 mod interpreter;
 mod object;
-mod function;
-mod builtin;
+mod parser;
+mod scanner;
+mod statement;
+mod token;
 
-use scanner::Scanner;
-use parser::Parser;
+use builtin::create_builtins;
 use environment::Environment;
 use interpreter::Interpreter;
-use builtin::create_builtins;
+use parser::Parser;
+use scanner::Scanner;
 
 use std::env;
 use std::fs;
-
 
 fn main() {
     let args: Vec<String> = env::args().collect();

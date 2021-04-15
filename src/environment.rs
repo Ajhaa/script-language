@@ -1,14 +1,14 @@
-use std::collections::HashMap;
 use crate::expression::*;
-use crate::statement::*;
 use crate::function::*;
+use crate::statement::*;
+use std::collections::HashMap;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct Env {
     pub variables: HashMap<String, ScriptValue>,
-    pub parent: Option<Rc<RefCell<Env>>>
+    pub parent: Option<Rc<RefCell<Env>>>,
 }
 
 impl Env {
@@ -16,16 +16,14 @@ impl Env {
         match self.variables.get(&key) {
             Some(_) => {
                 self.variables.insert(key, value);
-            },
-            None => {
-                match &self.parent {
-                    Some(env) => {
-                        let mut parent = env.borrow_mut();
-                        parent.put(key, value);
-                    },
-                    None => panic!("Variable {} not defined", key)
-                }
             }
+            None => match &self.parent {
+                Some(env) => {
+                    let mut parent = env.borrow_mut();
+                    parent.put(key, value);
+                }
+                None => panic!("Variable {} not defined", key),
+            },
         };
     }
 
@@ -36,34 +34,38 @@ impl Env {
     pub fn get(&self, key: &str) -> Option<ScriptValue> {
         match self.variables.get(key) {
             Some(val) => return Some(val.clone()),
-            None => {
-                match &self.parent {
-                    Some(env) => {
-                        let parent = env.borrow();
-                        parent.get(key)
-                    },
-                    None => None
+            None => match &self.parent {
+                Some(env) => {
+                    let parent = env.borrow();
+                    parent.get(key)
                 }
-            }
+                None => None,
+            },
         }
     }
 }
 
 #[derive(Clone)]
 pub struct Environment {
-    pub env: Rc<RefCell<Env>>
-} 
+    pub env: Rc<RefCell<Env>>,
+}
 
 impl Environment {
     pub fn new() -> Environment {
         let parent = None;
-        let env = Rc::new(RefCell::new(Env {variables: HashMap::new(), parent }));
+        let env = Rc::new(RefCell::new(Env {
+            variables: HashMap::new(),
+            parent,
+        }));
         Environment { env }
     }
 
     pub fn enter(&mut self) {
         let parent = Some(Rc::clone(&self.env));
-        let next = Rc::new(RefCell::new(Env {variables: HashMap::new(), parent }));
+        let next = Rc::new(RefCell::new(Env {
+            variables: HashMap::new(),
+            parent,
+        }));
         self.env = next;
     }
 
@@ -75,7 +77,7 @@ impl Environment {
             Some(env) => {
                 self.env = Rc::clone(&env);
             }
-            None => panic!("ASDAS")
+            None => panic!("ASDAS"),
         }
     }
 
@@ -99,17 +101,19 @@ impl Environment {
         env.variables.clone()
     }
 
-    pub fn create_internal_function(&mut self, name: &str, params: Vec<&str>, func: InternalFunction) {
-        self.put_new(name, ScriptValue::Function(
-            Function::new(
+    pub fn create_internal_function(
+        &mut self,
+        name: &str,
+        params: Vec<&str>,
+        func: InternalFunction,
+    ) {
+        self.put_new(
+            name,
+            ScriptValue::Function(Function::new(
                 params.iter().map(|e| e.to_string()).collect(),
-                Rc::new(Box::new(
-                    InternalStatement {
-                        func
-                    }
-                )),
-                Rc::clone(&self.env)
-            ),
-        ));
+                Rc::new(InternalStatement { func }),
+                Rc::clone(&self.env),
+            )),
+        );
     }
 }

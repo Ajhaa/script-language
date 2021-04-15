@@ -1,10 +1,9 @@
-use crate::token::*;
 use crate::expression::*;
 use crate::statement::*;
+use crate::token::*;
 
-use std::rc::Rc;
 use std::cell::RefCell;
-
+use std::rc::Rc;
 
 type Program = Vec<Box<dyn Statement>>;
 
@@ -16,12 +15,10 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Parser {
-        let program = Vec::new();
-        // let mut refs = Vec::new();
-        // for token in tokens {
-        //     refs.push(token);
-        // }
-        Parser { input: Tokens::new(tokens), program }
+        Parser {
+            input: Tokens::new(tokens),
+            program: Vec::new(),
+        }
     }
 
     pub fn parse(&mut self) -> &mut Program {
@@ -36,17 +33,12 @@ impl Parser {
     }
 
     fn current(&mut self) -> Option<&Token> {
-        //self.reset_peek();
         return self.input.current();
     }
 
     fn _lookahead(&mut self) -> Option<&Token> {
         return self.input._peek();
     }
-
-    // fn reset_peek(&mut self) {
-    //     self.input.reset_peek();
-    // }
 
     fn advance(&mut self) -> Option<&Token> {
         self.input.advance()
@@ -55,7 +47,7 @@ impl Parser {
     fn consume(&mut self) -> Option<&Token> {
         self.input.consume()
     }
-    
+
     fn _skip(&mut self, amount: usize) -> Option<&Token> {
         self.input._skip(amount)
     }
@@ -72,25 +64,29 @@ impl Parser {
                     self.consume().should_be(&Token::Assign);
                     let expr = self.expression();
 
-                    Box::new(DeclarationStatement { variables: vec![identifier], initializer: Some(expr) })
+                    Box::new(DeclarationStatement {
+                        variables: vec![identifier],
+                        initializer: Some(expr),
+                    })
                 } else {
                     panic!("stmt paininik");
                 }
-            },
+            }
             Token::Identifier(_) => {
                 let expr = self.expression();
                 if let Some(&Token::Assign) = self.current() {
                     self.consume();
                     let value = self.expression();
-                    Box::new(AssignmentStatement { assignee: expr, expr: value })
+                    Box::new(AssignmentStatement {
+                        assignee: expr,
+                        expr: value,
+                    })
 
                     // self.consume();
-                    
                 } else {
                     Box::new(ExpressionStatement { expr })
                 }
-                
-            },
+            }
             Token::If => {
                 self.advance();
                 let condition = self.expression();
@@ -103,20 +99,24 @@ impl Parser {
                     None
                 };
 
-                Box::new(IfStatement { condition, if_body, else_body })
-            },
+                Box::new(IfStatement {
+                    condition,
+                    if_body,
+                    else_body,
+                })
+            }
             Token::While => {
                 self.advance();
                 let condition = self.expression();
                 let body = self.statement();
 
                 Box::new(WhileStatement { condition, body })
-            },
+            }
             Token::Func => {
                 let next = self.advance();
                 if let Some(Token::Identifier(ident)) = next {
                     let name = ident.to_owned();
-        
+
                     self.advance().should_be(&Token::LeftParen);
                     self.advance();
                     let mut params = Vec::new();
@@ -130,18 +130,21 @@ impl Parser {
                     }
                     self.consume().should_be(&Token::RightParen);
                     let body = self.statement();
-              
-                    Box::new(FunctionStatement { name, params, body: Rc::new(body) })
+
+                    Box::new(FunctionStatement {
+                        name,
+                        params,
+                        body: Rc::from(body),
+                    })
                 } else {
                     panic!("Unexpected {:?} while parsing function", next)
                 }
-
-            },
+            }
             Token::Return => {
                 self.consume();
                 let expr = self.expression();
                 Box::new(ReturnStatement { expr })
-            },
+            }
             Token::LeftBracket => {
                 self.advance();
                 let mut body = Vec::new();
@@ -156,9 +159,9 @@ impl Parser {
 
                 Box::new(BlockStatement { body })
             }
-            _ => {
-                Box::new(ExpressionStatement { expr: self.expression() })
-            }
+            _ => Box::new(ExpressionStatement {
+                expr: self.expression(),
+            }),
         }
     }
 
@@ -179,37 +182,44 @@ impl Parser {
                 Token::Lesser => (),
                 Token::EqGreater => (),
                 Token::EqLesser => (),
-                _ => return left
+                _ => return left,
             }
 
-            // self.advance();
             let operator = self.consume().unwrap().clone();
 
             let right = self.condition();
-            return Box::new(ConditionExpression{ left, right, operator });
+            return Box::new(ConditionExpression {
+                left,
+                right,
+                operator,
+            });
         }
-        
+
         return left;
     }
 
     fn addition(&mut self) -> Box<dyn Expression> {
         let left = self.multiplication();
-        
+
         let next = self.current();
 
         if let Some(token) = next {
             match token {
                 Token::Plus => (),
                 Token::Minus => (),
-                _ => return left
+                _ => return left,
             }
 
             let operator = self.consume().unwrap().clone();
 
             let right = self.addition();
-            return Box::new(AdditionExpression{ left, right, operator });
+            return Box::new(AdditionExpression {
+                left,
+                right,
+                operator,
+            });
         }
-        
+
         return left;
     }
 
@@ -222,15 +232,19 @@ impl Parser {
             match token {
                 Token::Star => (),
                 Token::Slash => (),
-                _ => return left
+                _ => return left,
             }
 
             let operator = self.consume().unwrap().clone();
 
             let right = self.multiplication();
-            return Box::new(MultiplicationExpression{ left, right, operator });
+            return Box::new(MultiplicationExpression {
+                left,
+                right,
+                operator,
+            });
         }
-        
+
         return left;
     }
 
@@ -239,12 +253,14 @@ impl Parser {
 
         let factor: Box<dyn Expression> = match next {
             Token::Number(value) => Box::new(ScriptValue::Number(*value)),
-            Token::String(string) => Box::new(ScriptValue::String(Rc::new(RefCell::new(string.to_owned())))),
+            Token::String(string) => Box::new(ScriptValue::String(Rc::new(RefCell::new(
+                string.to_owned(),
+            )))),
             Token::Boolean(b) => Box::new(ScriptValue::Boolean(*b)),
             Token::None => Box::new(ScriptValue::None),
             Token::Identifier(identifier) => {
                 let ident = identifier.to_owned();
-               
+
                 Box::new(VariableExpression { identifier: ident })
             }
             Token::LeftParen => {
@@ -252,7 +268,7 @@ impl Parser {
                 self.consume().should_be(&Token::RightParen);
                 expr
             }
-            _ => panic!("Not a factor: {:?}", next)
+            _ => panic!("Not a factor: {:?}", next),
         };
 
         self.call_and_access(factor)
@@ -288,7 +304,10 @@ impl Parser {
             let index_expr = self.expression();
             self.consume().should_be(&Token::RightBrace);
 
-            let new_base = Box::new(IndexExpression { expr: call, index_expr });
+            let new_base = Box::new(IndexExpression {
+                expr: call,
+                index_expr,
+            });
             self.call_and_access(new_base)
         } else {
             call
@@ -298,11 +317,14 @@ impl Parser {
             self.advance();
             match self.consume() {
                 Some(Token::Identifier(ident)) => {
-                    let new_base = Box::new(AccessExpression { expr: index, field: ident.to_owned() });
+                    let new_base = Box::new(AccessExpression {
+                        expr: index,
+                        field: ident.to_owned(),
+                    });
                     self.call_and_access(new_base)
                 }
                 Some(other) => panic!("Cannot access {:?}", other),
-                None => panic!("Unexpected EOF when parsing")
+                None => panic!("Unexpected EOF when parsing"),
             }
         } else {
             index

@@ -1,38 +1,56 @@
-
 #[derive(PartialEq, Clone, Debug)]
 pub enum Token {
     Identifier(String),
     Number(f64),
     String(String),
     Boolean(bool),
-    Plus, Minus, Star, Slash,
+    Plus,
+    Minus,
+    Star,
+    Slash,
     Assign,
-    And, Or, Not,
-    BitAnd, BitOr,
-    Equals, NotEquals,
-    Greater, Lesser, EqGreater, EqLesser,
+    And,
+    Or,
+    Not,
+    BitAnd,
+    BitOr,
+    Equals,
+    NotEquals,
+    Greater,
+    Lesser,
+    EqGreater,
+    EqLesser,
     // LineBreak,
-    Var, Func,
-    If, Else, While,
-    LeftBracket, RightBracket,
-    LeftParen, RightParen,
-    LeftBrace, RightBrace,
+    Var,
+    Func,
+    If,
+    Else,
+    While,
+    LeftBracket,
+    RightBracket,
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
     Comma,
     Dot,
     Return,
     None,
     // TODO better solution,
-    Nothing
+    Nothing,
 }
 
 pub struct Tokens {
     input: Vec<Token>,
-    index: usize
+    index: usize,
 }
 
 impl Tokens {
     pub fn new(vec: Vec<Token>) -> Tokens {
-        Tokens { input: vec, index: 0 }
+        Tokens {
+            input: vec,
+            index: 0,
+        }
     }
 
     pub fn current(&self) -> Option<&Token> {
@@ -60,7 +78,6 @@ impl Tokens {
     }
 }
 
-
 pub trait Should<T> {
     fn should_be(&self, other: T);
 }
@@ -76,4 +93,3 @@ impl Should<&Token> for Option<&Token> {
         }
     }
 }
-

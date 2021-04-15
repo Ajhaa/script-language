@@ -1,21 +1,11 @@
-use crate::{
-    environment::*,
-    statement::*,
-    expression::*,
-    interpreter::*
-};
+use crate::{environment::*, expression::*, interpreter::*, statement::*};
 
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    fmt
-};
+use std::{cell::RefCell, fmt, rc::Rc};
 
 pub struct Function {
     pub params: Vec<String>,
-    pub body: Rc<Box<dyn Statement>>,
-    // pub env: Rc<RefCell<Option<Env>>>
-    pub env: Environment
+    pub body: Rc<dyn Statement>,
+    pub env: Environment,
 }
 
 impl fmt::Debug for Function {
@@ -25,15 +15,21 @@ impl fmt::Debug for Function {
 }
 
 impl Function {
-    pub fn new(params: Vec<String>, body: Rc<Box<dyn Statement>>, env: Rc<RefCell<Env>>) -> Rc<RefCell<Function>> {
+    pub fn new(
+        params: Vec<String>,
+        body: Rc<dyn Statement>,
+        env: Rc<RefCell<Env>>,
+    ) -> Rc<RefCell<Function>> {
         let env = Environment { env };
         Rc::new(RefCell::new(Function { params, body, env }))
     }
 
     pub fn call(&self, base: &mut Interpreter, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
-        let mut interpreter = Interpreter { env: self.env.clone() };
+        let mut interpreter = Interpreter {
+            env: self.env.clone(),
+        };
         interpreter.env.enter();
-        for i in 0 .. self.params.len() {
+        for i in 0..self.params.len() {
             let val = params[i].accept(base);
             let key = self.params[i].clone();
             interpreter.env.put_new(&key, val);
@@ -42,7 +38,7 @@ impl Function {
         interpreter.env.exit();
         match val {
             StatementValue::Normal(x) => x,
-            StatementValue::Return(x) => x 
+            StatementValue::Return(x) => x,
         }
     }
 }
