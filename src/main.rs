@@ -17,6 +17,7 @@ use scanner::Scanner;
 
 use std::env;
 use std::fs;
+use std::process;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -27,7 +28,13 @@ fn main() {
     let tokens = scanner.scan();
 
     let mut parser = Parser::new(tokens);
-    let program = parser.parse();
+    let program = match parser.parse() {
+        Ok(result) => result,
+        Err(e) => {
+            println!("{}", e);
+            process::exit(1);
+        }
+    };
 
     let mut env = Environment::new();
     create_builtins(&mut env);

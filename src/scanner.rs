@@ -7,6 +7,7 @@ use std::iter::Peekable;
 use std::vec::IntoIter;
 
 pub struct Scanner<'a> {
+    line: usize,
     input: Peekable<IntoIter<char>>,
     tokens: Vec<Token>,
     keywords: HashMap<&'a str, Token>,
@@ -16,6 +17,7 @@ impl<'a> Scanner<'a> {
     pub fn new(string: String) -> Scanner<'a> {
         let chars: Vec<char> = string.chars().collect();
         Scanner {
+            line: 1,
             tokens: Vec::new(),
             input: chars.into_iter().peekable(),
             keywords: HashMap::<_, _>::from_iter(array::IntoIter::new([
@@ -89,8 +91,12 @@ impl<'a> Scanner<'a> {
             'A'..='Z' | 'a'..='z' | '_' => self.word(next),
             '0'..='9' => self.number(next),
             '"' => self.string(),
-            ' ' | '\r' | '\n' => Token::Nothing,
-            _ => panic!("Unexpected {}", next),
+            '\n' => {
+                self.line += 1;
+                Token::Nothing
+            },
+            ' ' | '\r' => Token::Nothing,
+            _ => panic!("Unexpected {} at line {}", next, self.line),
         };
 
         if let Token::Nothing = token {

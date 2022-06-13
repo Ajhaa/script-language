@@ -4,8 +4,21 @@ use crate::token::*;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::fmt;
 
 type Program = Vec<Box<dyn Statement>>;
+
+// TODO actual info to parserError
+#[derive(Debug, Clone)]
+pub struct ParserError;
+
+type ExpressionResult = Result<Box<dyn Expression>, ParserError>;
+
+impl fmt::Display for ParserError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "parse error")
+    }
+}
 
 pub struct Parser {
     //input: MultiPeek<IntoIter<&'a Token>>,
@@ -21,15 +34,15 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> &mut Program {
+    pub fn parse(&mut self) -> Result<&mut Program, ParserError> {
         loop {
-            let stmt = self.statement();
+            let stmt = self.statement()?;
             self.program.push(stmt);
             if let None = self.current() {
                 break;
             }
         }
-        &mut self.program
+        Ok(&mut self.program)
     }
 
     fn current(&mut self) -> Option<&Token> {
@@ -52,9 +65,9 @@ impl Parser {
         self.input._skip(amount)
     }
 
-    fn statement(&mut self) -> Box<dyn Statement> {
+    fn statement(&mut self) -> Result<Box<dyn Statement>, ParserError> {
         let current = self.current();
-        match current.unwrap() {
+        let stmt: Box<dyn Statement> = match current.unwrap() {
             Token::Var => {
                 // TODO multi var
                 self.advance();
@@ -62,21 +75,21 @@ impl Parser {
                 if let Token::Identifier(ident) = var {
                     let identifier = ident.to_owned();
                     self.consume().should_be(&Token::Assign);
-                    let expr = self.expression();
+                    let expr = self.expression()?;
 
                     Box::new(DeclarationStatement {
                         variables: vec![identifier],
                         initializer: Some(expr),
                     })
                 } else {
-                    panic!("stmt paininik");
+                    return Err(ParserError);
                 }
             }
             Token::Identifier(_) => {
-                let expr = self.expression();
+                let expr = self.expression()?;
                 if let Some(&Token::Assign) = self.current() {
                     self.consume();
-                    let value = self.expression();
+                    let value = self.expression()?;
                     Box::new(AssignmentStatement {
                         assignee: expr,
                         expr: value,
@@ -89,12 +102,12 @@ impl Parser {
             }
             Token::If => {
                 self.advance();
-                let condition = self.expression();
-                let if_body = self.statement();
+                let condition = self.expression()?;
+                let if_body = self.statement()?;
 
                 let else_body = if let Some(Token::Else) = self.current() {
                     self.advance();
-                    Some(self.statement())
+                    Some(self.statement()?)
                 } else {
                     None
                 };
@@ -107,8 +120,8 @@ impl Parser {
             }
             Token::While => {
                 self.advance();
-                let condition = self.expression();
-                let body = self.statement();
+                let condition = self.expression()?;
+                let body = self.statement()?;
 
                 Box::new(WhileStatement { condition, body })
             }
@@ -129,7 +142,7 @@ impl Parser {
                         }
                     }
                     self.consume().should_be(&Token::RightParen);
-                    let body = self.statement();
+                    let body = self.statement()?;
 
                     Box::new(FunctionStatement {
                         name,
@@ -137,12 +150,12 @@ impl Parser {
                         body: Rc::from(body),
                     })
                 } else {
-                    panic!("Unexpected {:?} while parsing function", next)
+                    return Err(ParserError);
                 }
             }
             Token::Return => {
                 self.consume();
-                let expr = self.expression();
+                let expr = self.expression()?;
                 Box::new(ReturnStatement { expr })
             }
             Token::LeftBracket => {
@@ -153,24 +166,26 @@ impl Parser {
                         self.advance();
                         break;
                     }
-                    let stmt = self.statement();
+                    let stmt = self.statement()?;
                     body.push(stmt);
                 }
 
                 Box::new(BlockStatement { body })
             }
             _ => Box::new(ExpressionStatement {
-                expr: self.expression(),
+                expr: self.expression()?,
             }),
-        }
+        };
+
+        Ok(stmt)
     }
 
-    fn expression(&mut self) -> Box<dyn Expression> {
+    fn expression(&mut self) -> ExpressionResult {
         self.condition()
     }
 
-    fn condition(&mut self) -> Box<dyn Expression> {
-        let left = self.addition();
+    fn condition(&mut self) -> ExpressionResult {
+        let left = self.addition()?;
 
         let next = self.current();
 
@@ -182,24 +197,25 @@ impl Parser {
                 Token::Lesser => (),
                 Token::EqGreater => (),
                 Token::EqLesser => (),
-                _ => return left,
+                _ => return Ok(left),
             }
 
+            // TODO consume etc error handling
             let operator = self.consume().unwrap().clone();
 
-            let right = self.condition();
-            return Box::new(ConditionExpression {
+            let right = self.condition()?;
+            return Ok(Box::new(ConditionExpression {
                 left,
                 right,
                 operator,
-            });
+            }));
         }
 
-        return left;
+        return Ok(left);
     }
 
-    fn addition(&mut self) -> Box<dyn Expression> {
-        let left = self.multiplication();
+    fn addition(&mut self) -> ExpressionResult {
+        let left = self.multiplication()?;
 
         let next = self.current();
 
@@ -207,24 +223,24 @@ impl Parser {
             match token {
                 Token::Plus => (),
                 Token::Minus => (),
-                _ => return left,
+                _ => return Ok(left),
             }
 
             let operator = self.consume().unwrap().clone();
 
-            let right = self.addition();
-            return Box::new(AdditionExpression {
+            let right = self.addition()?;
+            return Ok(Box::new(AdditionExpression {
                 left,
                 right,
                 operator,
-            });
+            }));
         }
 
-        return left;
+        return Ok(left);
     }
 
-    fn multiplication(&mut self) -> Box<dyn Expression> {
-        let left = self.factor();
+    fn multiplication(&mut self) -> ExpressionResult {
+        let left = self.factor()?;
 
         let next = self.current();
 
@@ -232,23 +248,23 @@ impl Parser {
             match token {
                 Token::Star => (),
                 Token::Slash => (),
-                _ => return left,
+                _ => return Ok(left),
             }
 
             let operator = self.consume().unwrap().clone();
 
-            let right = self.multiplication();
-            return Box::new(MultiplicationExpression {
+            let right = self.multiplication()?;
+            return Ok(Box::new(MultiplicationExpression {
                 left,
                 right,
                 operator,
-            });
+            }));
         }
 
-        return left;
+        return Ok(left);
     }
 
-    fn factor(&mut self) -> Box<dyn Expression> {
+    fn factor(&mut self) -> ExpressionResult {
         let next = self.consume().unwrap();
 
         let factor: Box<dyn Expression> = match next {
@@ -264,7 +280,7 @@ impl Parser {
                 Box::new(VariableExpression { identifier: ident })
             }
             Token::LeftParen => {
-                let expr = self.expression();
+                let expr = self.expression()?;
                 self.consume().should_be(&Token::RightParen);
                 expr
             }
@@ -274,7 +290,7 @@ impl Parser {
         self.call_and_access(factor)
     }
 
-    fn call_and_access(&mut self, base: Box<dyn Expression>) -> Box<dyn Expression> {
+    fn call_and_access(&mut self, base: Box<dyn Expression>) -> ExpressionResult {
         let call = if let Some(Token::LeftParen) = self.current() {
             self.advance();
             let mut params = Vec::new();
@@ -283,7 +299,7 @@ impl Parser {
                     break;
                 }
 
-                let expr = self.expression();
+                let expr = self.expression()?;
                 params.push(expr);
 
                 if let Some(Token::Comma) = self.current() {
@@ -294,21 +310,21 @@ impl Parser {
             }
             self.consume().should_be(&Token::RightParen);
             let new_base = Box::new(FunctionExpression { expr: base, params });
-            self.call_and_access(new_base)
+            self.call_and_access(new_base)?
         } else {
             base
         };
 
         let index = if let Some(Token::LeftBrace) = self.current() {
             self.advance();
-            let index_expr = self.expression();
+            let index_expr = self.expression()?;
             self.consume().should_be(&Token::RightBrace);
 
             let new_base = Box::new(IndexExpression {
                 expr: call,
                 index_expr,
             });
-            self.call_and_access(new_base)
+            self.call_and_access(new_base)?
         } else {
             call
         };
@@ -323,11 +339,13 @@ impl Parser {
                     });
                     self.call_and_access(new_base)
                 }
-                Some(other) => panic!("Cannot access {:?}", other),
-                None => panic!("Unexpected EOF when parsing"),
+                // Some(other) => panic!("Cannot access {:?}", other),
+                // None => panic!("Unexpected EOF when parsing"),
+                Some(other) => Err(ParserError),
+                None => Err(ParserError)
             }
         } else {
-            index
+            Ok(index)
         }
     }
 }
