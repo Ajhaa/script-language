@@ -338,7 +338,7 @@ impl Parser {
                 }
                 // Some(other) => panic!("Cannot access {:?}", other),
                 // None => panic!("Unexpected EOF when parsing"),
-                Some(other) => Err(ParserError::unexpected(current.unwrap(), "object")),
+                Some(_) => Err(ParserError::unexpected(current.unwrap(), "object")),
                 None => Err(ParserError::eof())
             }
         } else {

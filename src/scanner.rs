@@ -138,10 +138,19 @@ impl<'a> Scanner<'a> {
 
     fn number(&mut self, first: char) -> TokenType {
         let mut s = String::from(first);
+        let mut decimal_encountered = false;
 
         while let Some(c) = self.input.peek() {
             match c {
                 '0'..='9' => s.push(self.input.next().unwrap()),
+                '.' => {
+                    if decimal_encountered {
+                        panic!("too much decimals !!!")
+                    }
+
+                    s.push(self.input.next().unwrap());
+                    decimal_encountered = true;
+                }
                 _ => break,
             }
         }
