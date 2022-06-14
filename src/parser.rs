@@ -66,15 +66,16 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Box<dyn Statement>, ParserError> {
-        let current = self.current();
-        let stmt: Box<dyn Statement> = match current.unwrap().tokenType {
+       let current = self.current().ok_or(ParserError)?;
+
+        let stmt: Box<dyn Statement> = match current.tokenType {
             TokenType::Var => {
                 // TODO multi var
                 self.advance();
-                let var = self.consume().unwrap();
+                let var = self.consume().ok_or(ParserError)?;
                 if let TokenType::Identifier(ident) = &var.tokenType {
                     let identifier = ident.to_owned();
-                    self.consume().should_be(TokenType::Assign);
+                    self.consume().should_be(TokenType::Assign)?;
                     let expr = self.expression()?;
 
                     Box::new(DeclarationStatement {
@@ -130,7 +131,7 @@ impl Parser {
                 if let Some(TokenType::Identifier(ident)) = next.unwrap_type() {
                     let name = ident.to_owned();
 
-                    self.advance().should_be(TokenType::LeftParen);
+                    self.advance().should_be(TokenType::LeftParen)?;
                     self.advance();
                     let mut params = Vec::new();
                     while let Some(TokenType::Identifier(ident)) = self.current().unwrap_type() {
@@ -141,7 +142,7 @@ impl Parser {
                             break;
                         }
                     }
-                    self.consume().should_be(TokenType::RightParen);
+                    self.consume().should_be(TokenType::RightParen)?;
                     let body = self.statement()?;
 
                     Box::new(FunctionStatement {
@@ -201,7 +202,7 @@ impl Parser {
             }
 
             // TODO consume etc error handling
-            let operator = self.consume().unwrap().clone();
+            let operator = self.consume().ok_or(ParserError)?.clone();
 
             let right = self.condition()?;
             return Ok(Box::new(ConditionExpression {
@@ -226,7 +227,7 @@ impl Parser {
                 _ => return Ok(left),
             }
 
-            let operator = self.consume().unwrap().clone();
+            let operator = self.consume().ok_or(ParserError)?.clone();
 
             let right = self.addition()?;
             return Ok(Box::new(AdditionExpression {
@@ -251,7 +252,7 @@ impl Parser {
                 _ => return Ok(left),
             }
 
-            let operator = self.consume().unwrap().clone();
+            let operator = self.consume().ok_or(ParserError)?.clone();
 
             let right = self.multiplication()?;
             return Ok(Box::new(MultiplicationExpression {
@@ -265,7 +266,7 @@ impl Parser {
     }
 
     fn factor(&mut self) -> ExpressionResult {
-        let next = self.consume().unwrap();
+        let next = self.consume().ok_or(ParserError)?;
 
         let factor: Box<dyn Expression> = match &next.tokenType {
             TokenType::Number(value) => Box::new(ScriptValue::Number(*value)),
@@ -281,7 +282,7 @@ impl Parser {
             }
             TokenType::LeftParen => {
                 let expr = self.expression()?;
-                self.consume().should_be(TokenType::RightParen);
+                self.consume().should_be(TokenType::RightParen)?;
                 expr
             }
             //_ => panic!("Not a factor: {:?}", next),
@@ -309,7 +310,7 @@ impl Parser {
                     break;
                 }
             }
-            self.consume().should_be(TokenType::RightParen);
+            self.consume().should_be(TokenType::RightParen)?;
             let new_base = Box::new(FunctionExpression { expr: base, params });
             self.call_and_access(new_base)?
         } else {
@@ -319,7 +320,7 @@ impl Parser {
         let index = if let Some(TokenType::LeftBrace) = self.current().unwrap_type() {
             self.advance();
             let index_expr = self.expression()?;
-            self.consume().should_be(TokenType::RightBrace);
+            self.consume().should_be(TokenType::RightBrace)?;
 
             let new_base = Box::new(IndexExpression {
                 expr: call,
