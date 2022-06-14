@@ -40,5 +40,10 @@ fn main() {
     create_builtins(&mut env);
 
     let mut interpreter = Interpreter { env };
-    interpreter.exec(program);
+    let result = interpreter.exec(program);
+
+    if let Err(error) = result {
+        println!("{}", error);
+        process::exit(1);
+    }
 }

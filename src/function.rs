@@ -24,21 +24,24 @@ impl Function {
         Rc::new(RefCell::new(Function { params, body, env }))
     }
 
-    pub fn call(&self, base: &mut Interpreter, params: &Vec<Box<dyn Expression>>) -> ScriptValue {
+    pub fn call(&self, base: &mut Interpreter, params: &Vec<Box<dyn Expression>>) -> ExpressionResult {
         let mut interpreter = Interpreter {
             env: self.env.clone(),
         };
         interpreter.env.enter();
         for i in 0..self.params.len() {
-            let val = params[i].accept(base);
+            let val = params[i].accept(base)?;
             let key = self.params[i].clone();
             interpreter.env.put_new(&key, val);
         }
-        let val = (*self.body).accept(&mut interpreter);
+        let val = (*self.body).accept(&mut interpreter)?;
         interpreter.env.exit();
-        match val {
-            StatementValue::Normal(x) => x,
-            StatementValue::Return(x) => x,
-        }
+
+        Ok(
+            match val {
+                StatementValue::Normal(x) => x,
+                StatementValue::Return(x) => x,
+            }
+        )
     }
 }

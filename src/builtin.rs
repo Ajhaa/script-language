@@ -1,4 +1,5 @@
-use crate::{environment::Environment, expression::*, object::*, statement::*};
+use crate::{environment::Environment, expression::*, object::*, statement::*, interpreter::errors::InterpreterError};
+
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -6,11 +7,11 @@ pub fn create_builtins(env: &mut Environment) {
     env.create_internal_function("print", vec!["target"], |inpr| {
         let val = inpr.env.get("target").unwrap();
         println!("{}", val);
-        StatementValue::Normal(ScriptValue::Unit)
+        Ok(StatementValue::Normal(ScriptValue::Unit))
     });
 
     env.create_internal_function("Object", Vec::new(), |_| {
-        StatementValue::Normal(ScriptValue::Object(Object::new()))
+        Ok(StatementValue::Normal(ScriptValue::Object(Object::new())))
     });
 
     env.create_internal_function("List", vec!["size"], |inpr| {
@@ -20,9 +21,9 @@ pub fn create_builtins(env: &mut Environment) {
             None => 0,
         };
 
-        StatementValue::Normal(ScriptValue::List(Rc::new(RefCell::new(
+        Ok(StatementValue::Normal(ScriptValue::List(Rc::new(RefCell::new(
             vec![ScriptValue::None; size],
-        ))))
+        )))))
     });
 
     env.create_internal_function("map", vec!["func", "list"], |inpr| {
@@ -38,7 +39,7 @@ pub fn create_builtins(env: &mut Environment) {
             None => panic!("Expected 2 args"),
         };
 
-        let mapped: Vec<ScriptValue> = list
+        let mapped: Result<Vec<ScriptValue>, InterpreterError> = list
             .borrow()
             .iter()
             .map(|e| {
@@ -47,6 +48,9 @@ pub fn create_builtins(env: &mut Environment) {
             })
             .collect();
 
-        StatementValue::Normal(ScriptValue::List(Rc::new(RefCell::new(mapped))))
+        match mapped {
+            Ok(result) => Ok(StatementValue::Normal(ScriptValue::List(Rc::new(RefCell::new(result))))),
+            Err(error) => Err(error)
+        }
     });
 }
