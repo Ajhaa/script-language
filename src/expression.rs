@@ -41,7 +41,7 @@ impl ScriptValue {
     pub fn numeric(&self, other: ScriptValue, operator: Token) -> ScriptValue {
         match (self, &other) {
             (ScriptValue::Number(left), ScriptValue::Number(right)) => {
-                let result = match operator.tokenType {
+                let result = match operator.token_type {
                     TokenType::Plus => left + right,
                     TokenType::Minus => left - right,
                     TokenType::Star => left * right,
@@ -51,13 +51,13 @@ impl ScriptValue {
 
                 ScriptValue::Number(result)
             }
-            _ => panic!("Cannot {:?} {:?} and {:?}", operator.tokenType, self, other),
+            _ => panic!("Cannot {:?} {:?} and {:?}", operator.token_type, self, other),
         }
     }
 
     pub fn boolean(&self, other: ScriptValue, operator: Token) -> ScriptValue {
         let result = match (self, &other) {
-            (ScriptValue::Number(left), ScriptValue::Number(right)) => match operator.tokenType {
+            (ScriptValue::Number(left), ScriptValue::Number(right)) => match operator.token_type {
                 TokenType::Equals => left == right,
                 TokenType::NotEquals => left != right,
                 TokenType::Lesser => left < right,
@@ -66,7 +66,7 @@ impl ScriptValue {
                 TokenType::EqGreater => left >= right,
                 _ => panic!("Impossible boolean operation"),
             },
-            (ScriptValue::Boolean(left), ScriptValue::Boolean(right)) => match operator.tokenType {
+            (ScriptValue::Boolean(left), ScriptValue::Boolean(right)) => match operator.token_type {
                 TokenType::Equals => left == right,
                 TokenType::NotEquals => left != right,
                 _ => panic!("Impossible boolean operation"),

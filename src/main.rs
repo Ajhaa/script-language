@@ -31,7 +31,7 @@ fn main() {
     let program = match parser.parse() {
         Ok(result) => result,
         Err(e) => {
-            println!("{}", e.message);
+            println!("{}", e);
             process::exit(1);
         }
     };

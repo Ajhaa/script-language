@@ -1,8 +1,7 @@
 use crate::token::{Token,TokenType};
 
-use std::array;
 use std::collections::HashMap;
-use std::iter::FromIterator;
+use std::iter::{FromIterator,IntoIterator};
 use std::iter::Peekable;
 use std::vec::IntoIter;
 
@@ -20,7 +19,7 @@ impl<'a> Scanner<'a> {
             line: 1,
             tokens: Vec::new(),
             input: chars.into_iter().peekable(),
-            keywords: HashMap::<_, _>::from_iter(array::IntoIter::new([
+            keywords: HashMap::<_, _>::from_iter(IntoIterator::into_iter([
                 ("var", TokenType::Var),
                 ("if", TokenType::If),
                 ("else", TokenType::Else),
@@ -102,7 +101,7 @@ impl<'a> Scanner<'a> {
         if let TokenType::Nothing = token {
             None
         } else {
-            Some(Token { tokenType: token, line: self.line, col: 0 })
+            Some(Token { token_type: token, line: self.line, col: 0 })
         }
     }
 

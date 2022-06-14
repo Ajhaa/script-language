@@ -1,36 +1,18 @@
 use crate::expression::*;
 use crate::statement::*;
 use crate::token::*;
+use errors::*;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::fmt;
+
+pub mod errors;
 
 type Program = Vec<Box<dyn Statement>>;
 
-// TODO actual info to parserError
-#[derive(Debug, Clone)]
-pub struct ParserError {
-    pub message: String,
-}
-
-impl ParserError {
-    pub fn new(message: &str) -> ParserError {
-        ParserError { message: message.to_owned() }
-    }
-
-    pub fn eof() -> ParserError {
-        ParserError::new("Reached eof while parsing")
-    }
-}
 
 type ExpressionResult = Result<Box<dyn Expression>, ParserError>;
 
-impl fmt::Display for ParserError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "parse error")
-    }
-}
 
 pub struct Parser {
     //input: MultiPeek<IntoIter<&'a Token>>,
@@ -78,14 +60,14 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Box<dyn Statement>, ParserError> {
-       let current = self.current().ok_or(ParserError::eof())?;
+       let current = self.current().ok_or(ParserError::eof())?.clone();
 
-        let stmt: Box<dyn Statement> = match current.tokenType {
+        let stmt: Box<dyn Statement> = match current.token_type {
             TokenType::Var => {
                 // TODO multi var
                 self.advance();
                 let var = self.consume().ok_or(ParserError::eof())?;
-                if let TokenType::Identifier(ident) = &var.tokenType {
+                if let TokenType::Identifier(ident) = &var.token_type {
                     let identifier = ident.to_owned();
                     self.consume().should_be(TokenType::Assign)?;
                     let expr = self.expression()?;
@@ -95,7 +77,7 @@ impl Parser {
                         initializer: Some(expr),
                     })
                 } else {
-                    return Err(ParserError::new("Expected an identifier"));
+                    return Err(ParserError::unexpected(&current, "identifier"));
                 }
             }
             TokenType::Identifier(_) => {
@@ -163,7 +145,7 @@ impl Parser {
                         body: Rc::from(body),
                     })
                 } else {
-                    return Err(ParserError::new("Expected an identifier"));
+                    return Err(ParserError::unexpected(&current, "identifier"));
                 }
             }
             TokenType::Return => {
@@ -175,7 +157,7 @@ impl Parser {
                 self.advance();
                 let mut body = Vec::new();
                 while let Some(token) = self.current() {
-                    if token.tokenType == TokenType::RightBracket {
+                    if token.token_type == TokenType::RightBracket {
                         self.advance();
                         break;
                     }
@@ -203,7 +185,7 @@ impl Parser {
         let next = self.current();
 
         if let Some(token) = next {
-            match token.tokenType {
+            match token.token_type {
                 TokenType::Equals => (),
                 TokenType::NotEquals => (),
                 TokenType::Greater => (),
@@ -233,7 +215,7 @@ impl Parser {
         let next = self.current();
 
         if let Some(token) = next {
-            match token.tokenType {
+            match token.token_type {
                 TokenType::Plus => (),
                 TokenType::Minus => (),
                 _ => return Ok(left),
@@ -258,7 +240,7 @@ impl Parser {
         let next = self.current();
 
         if let Some(token) = next {
-            match token.tokenType {
+            match token.token_type {
                 TokenType::Star => (),
                 TokenType::Slash => (),
                 _ => return Ok(left),
@@ -280,7 +262,7 @@ impl Parser {
     fn factor(&mut self) -> ExpressionResult {
         let next = self.consume().ok_or(ParserError::eof())?;
 
-        let factor: Box<dyn Expression> = match &next.tokenType {
+        let factor: Box<dyn Expression> = match &next.token_type {
             TokenType::Number(value) => Box::new(ScriptValue::Number(*value)),
             TokenType::String(string) => Box::new(ScriptValue::String(Rc::new(RefCell::new(
                 string.to_owned(),
@@ -298,7 +280,7 @@ impl Parser {
                 expr
             }
             //_ => panic!("Not a factor: {:?}", next),
-            _ => return Err(ParserError::new(&format!("Not a factor {:?}", next.tokenType)))
+            _ => return Err(ParserError::unexpected(next, "factor"))
         };
 
         self.call_and_access(factor)
@@ -309,7 +291,7 @@ impl Parser {
             self.advance();
             let mut params = Vec::new();
             while let Some(token) = self.current() {
-                if token.tokenType == TokenType::RightParen {
+                if token.token_type == TokenType::RightParen {
                     break;
                 }
 
@@ -345,7 +327,8 @@ impl Parser {
 
         if let Some(TokenType::Dot) = self.current().unwrap_type() {
             self.advance();
-            match self.consume().unwrap_type() {
+            let current = self.consume();
+            match current.unwrap_type() {
                 Some(TokenType::Identifier(ident)) => {
                     let new_base = Box::new(AccessExpression {
                         expr: index,
@@ -355,7 +338,7 @@ impl Parser {
                 }
                 // Some(other) => panic!("Cannot access {:?}", other),
                 // None => panic!("Unexpected EOF when parsing"),
-                Some(other) => Err(ParserError::new(&format!("Cannot access {:?}", other))),
+                Some(other) => Err(ParserError::unexpected(current.unwrap(), "object")),
                 None => Err(ParserError::eof())
             }
         } else {
