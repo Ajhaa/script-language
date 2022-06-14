@@ -99,11 +99,11 @@ impl TokenTrait for Option<&Token> {
         if let Some(t) = self {
             if t.tokenType != other {
                 // panic!("Expected {:?}, got {:?}", t, other);
-                return Err(ParserError)
+                return Err(ParserError::new(&format!("Unexpected {:?}", other)))
             }
         } else {
             // panic!("Expected {:?}, was None", other);
-            return Err(ParserError)
+            return Err(ParserError::new("Unexpected None"))
         }
 
         Ok(())

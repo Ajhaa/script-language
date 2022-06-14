@@ -10,7 +10,19 @@ type Program = Vec<Box<dyn Statement>>;
 
 // TODO actual info to parserError
 #[derive(Debug, Clone)]
-pub struct ParserError;
+pub struct ParserError {
+    pub message: String,
+}
+
+impl ParserError {
+    pub fn new(message: &str) -> ParserError {
+        ParserError { message: message.to_owned() }
+    }
+
+    pub fn eof() -> ParserError {
+        ParserError::new("Reached eof while parsing")
+    }
+}
 
 type ExpressionResult = Result<Box<dyn Expression>, ParserError>;
 
@@ -66,13 +78,13 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Box<dyn Statement>, ParserError> {
-       let current = self.current().ok_or(ParserError)?;
+       let current = self.current().ok_or(ParserError::eof())?;
 
         let stmt: Box<dyn Statement> = match current.tokenType {
             TokenType::Var => {
                 // TODO multi var
                 self.advance();
-                let var = self.consume().ok_or(ParserError)?;
+                let var = self.consume().ok_or(ParserError::eof())?;
                 if let TokenType::Identifier(ident) = &var.tokenType {
                     let identifier = ident.to_owned();
                     self.consume().should_be(TokenType::Assign)?;
@@ -83,7 +95,7 @@ impl Parser {
                         initializer: Some(expr),
                     })
                 } else {
-                    return Err(ParserError);
+                    return Err(ParserError::new("Expected an identifier"));
                 }
             }
             TokenType::Identifier(_) => {
@@ -151,7 +163,7 @@ impl Parser {
                         body: Rc::from(body),
                     })
                 } else {
-                    return Err(ParserError);
+                    return Err(ParserError::new("Expected an identifier"));
                 }
             }
             TokenType::Return => {
@@ -202,7 +214,7 @@ impl Parser {
             }
 
             // TODO consume etc error handling
-            let operator = self.consume().ok_or(ParserError)?.clone();
+            let operator = self.consume().ok_or(ParserError::eof())?.clone();
 
             let right = self.condition()?;
             return Ok(Box::new(ConditionExpression {
@@ -227,7 +239,7 @@ impl Parser {
                 _ => return Ok(left),
             }
 
-            let operator = self.consume().ok_or(ParserError)?.clone();
+            let operator = self.consume().ok_or(ParserError::eof())?.clone();
 
             let right = self.addition()?;
             return Ok(Box::new(AdditionExpression {
@@ -252,7 +264,7 @@ impl Parser {
                 _ => return Ok(left),
             }
 
-            let operator = self.consume().ok_or(ParserError)?.clone();
+            let operator = self.consume().ok_or(ParserError::eof())?.clone();
 
             let right = self.multiplication()?;
             return Ok(Box::new(MultiplicationExpression {
@@ -266,7 +278,7 @@ impl Parser {
     }
 
     fn factor(&mut self) -> ExpressionResult {
-        let next = self.consume().ok_or(ParserError)?;
+        let next = self.consume().ok_or(ParserError::eof())?;
 
         let factor: Box<dyn Expression> = match &next.tokenType {
             TokenType::Number(value) => Box::new(ScriptValue::Number(*value)),
@@ -286,7 +298,7 @@ impl Parser {
                 expr
             }
             //_ => panic!("Not a factor: {:?}", next),
-            _ => return Err(ParserError)
+            _ => return Err(ParserError::new(&format!("Not a factor {:?}", next.tokenType)))
         };
 
         self.call_and_access(factor)
@@ -343,8 +355,8 @@ impl Parser {
                 }
                 // Some(other) => panic!("Cannot access {:?}", other),
                 // None => panic!("Unexpected EOF when parsing"),
-                Some(other) => Err(ParserError),
-                None => Err(ParserError)
+                Some(other) => Err(ParserError::new(&format!("Cannot access {:?}", other))),
+                None => Err(ParserError::eof())
             }
         } else {
             Ok(index)
