@@ -67,14 +67,14 @@ impl Parser {
 
     fn statement(&mut self) -> Result<Box<dyn Statement>, ParserError> {
         let current = self.current();
-        let stmt: Box<dyn Statement> = match current.unwrap() {
-            Token::Var => {
+        let stmt: Box<dyn Statement> = match current.unwrap().tokenType {
+            TokenType::Var => {
                 // TODO multi var
                 self.advance();
                 let var = self.consume().unwrap();
-                if let Token::Identifier(ident) = var {
+                if let TokenType::Identifier(ident) = &var.tokenType {
                     let identifier = ident.to_owned();
-                    self.consume().should_be(&Token::Assign);
+                    self.consume().should_be(TokenType::Assign);
                     let expr = self.expression()?;
 
                     Box::new(DeclarationStatement {
@@ -85,9 +85,9 @@ impl Parser {
                     return Err(ParserError);
                 }
             }
-            Token::Identifier(_) => {
+            TokenType::Identifier(_) => {
                 let expr = self.expression()?;
-                if let Some(&Token::Assign) = self.current() {
+                if let Some(TokenType::Assign) = self.current().unwrap_type() {
                     self.consume();
                     let value = self.expression()?;
                     Box::new(AssignmentStatement {
@@ -100,12 +100,12 @@ impl Parser {
                     Box::new(ExpressionStatement { expr })
                 }
             }
-            Token::If => {
+            TokenType::If => {
                 self.advance();
                 let condition = self.expression()?;
                 let if_body = self.statement()?;
 
-                let else_body = if let Some(Token::Else) = self.current() {
+                let else_body = if let Some(TokenType::Else) = self.current().unwrap_type() {
                     self.advance();
                     Some(self.statement()?)
                 } else {
@@ -118,30 +118,30 @@ impl Parser {
                     else_body,
                 })
             }
-            Token::While => {
+            TokenType::While => {
                 self.advance();
                 let condition = self.expression()?;
                 let body = self.statement()?;
 
                 Box::new(WhileStatement { condition, body })
             }
-            Token::Func => {
+            TokenType::Func => {
                 let next = self.advance();
-                if let Some(Token::Identifier(ident)) = next {
+                if let Some(TokenType::Identifier(ident)) = next.unwrap_type() {
                     let name = ident.to_owned();
 
-                    self.advance().should_be(&Token::LeftParen);
+                    self.advance().should_be(TokenType::LeftParen);
                     self.advance();
                     let mut params = Vec::new();
-                    while let Some(Token::Identifier(ident)) = self.current() {
+                    while let Some(TokenType::Identifier(ident)) = self.current().unwrap_type() {
                         params.push(ident.clone());
-                        if let Some(Token::Comma) = self.advance() {
+                        if let Some(TokenType::Comma) = self.advance().unwrap_type() {
                             self.consume();
                         } else {
                             break;
                         }
                     }
-                    self.consume().should_be(&Token::RightParen);
+                    self.consume().should_be(TokenType::RightParen);
                     let body = self.statement()?;
 
                     Box::new(FunctionStatement {
@@ -153,16 +153,16 @@ impl Parser {
                     return Err(ParserError);
                 }
             }
-            Token::Return => {
+            TokenType::Return => {
                 self.consume();
                 let expr = self.expression()?;
                 Box::new(ReturnStatement { expr })
             }
-            Token::LeftBracket => {
+            TokenType::LeftBracket => {
                 self.advance();
                 let mut body = Vec::new();
                 while let Some(token) = self.current() {
-                    if token == &Token::RightBracket {
+                    if token.tokenType == TokenType::RightBracket {
                         self.advance();
                         break;
                     }
@@ -190,13 +190,13 @@ impl Parser {
         let next = self.current();
 
         if let Some(token) = next {
-            match token {
-                Token::Equals => (),
-                Token::NotEquals => (),
-                Token::Greater => (),
-                Token::Lesser => (),
-                Token::EqGreater => (),
-                Token::EqLesser => (),
+            match token.tokenType {
+                TokenType::Equals => (),
+                TokenType::NotEquals => (),
+                TokenType::Greater => (),
+                TokenType::Lesser => (),
+                TokenType::EqGreater => (),
+                TokenType::EqLesser => (),
                 _ => return Ok(left),
             }
 
@@ -220,9 +220,9 @@ impl Parser {
         let next = self.current();
 
         if let Some(token) = next {
-            match token {
-                Token::Plus => (),
-                Token::Minus => (),
+            match token.tokenType {
+                TokenType::Plus => (),
+                TokenType::Minus => (),
                 _ => return Ok(left),
             }
 
@@ -245,9 +245,9 @@ impl Parser {
         let next = self.current();
 
         if let Some(token) = next {
-            match token {
-                Token::Star => (),
-                Token::Slash => (),
+            match token.tokenType {
+                TokenType::Star => (),
+                TokenType::Slash => (),
                 _ => return Ok(left),
             }
 
@@ -267,58 +267,59 @@ impl Parser {
     fn factor(&mut self) -> ExpressionResult {
         let next = self.consume().unwrap();
 
-        let factor: Box<dyn Expression> = match next {
-            Token::Number(value) => Box::new(ScriptValue::Number(*value)),
-            Token::String(string) => Box::new(ScriptValue::String(Rc::new(RefCell::new(
+        let factor: Box<dyn Expression> = match &next.tokenType {
+            TokenType::Number(value) => Box::new(ScriptValue::Number(*value)),
+            TokenType::String(string) => Box::new(ScriptValue::String(Rc::new(RefCell::new(
                 string.to_owned(),
             )))),
-            Token::Boolean(b) => Box::new(ScriptValue::Boolean(*b)),
-            Token::None => Box::new(ScriptValue::None),
-            Token::Identifier(identifier) => {
+            TokenType::Boolean(b) => Box::new(ScriptValue::Boolean(*b)),
+            TokenType::None => Box::new(ScriptValue::None),
+            TokenType::Identifier(identifier) => {
                 let ident = identifier.to_owned();
 
                 Box::new(VariableExpression { identifier: ident })
             }
-            Token::LeftParen => {
+            TokenType::LeftParen => {
                 let expr = self.expression()?;
-                self.consume().should_be(&Token::RightParen);
+                self.consume().should_be(TokenType::RightParen);
                 expr
             }
-            _ => panic!("Not a factor: {:?}", next),
+            //_ => panic!("Not a factor: {:?}", next),
+            _ => return Err(ParserError)
         };
 
         self.call_and_access(factor)
     }
 
     fn call_and_access(&mut self, base: Box<dyn Expression>) -> ExpressionResult {
-        let call = if let Some(Token::LeftParen) = self.current() {
+        let call = if let Some(TokenType::LeftParen) = self.current().unwrap_type() {
             self.advance();
             let mut params = Vec::new();
             while let Some(token) = self.current() {
-                if token == &Token::RightParen {
+                if token.tokenType == TokenType::RightParen {
                     break;
                 }
 
                 let expr = self.expression()?;
                 params.push(expr);
 
-                if let Some(Token::Comma) = self.current() {
+                if let Some(TokenType::Comma) = self.current().unwrap_type() {
                     self.consume();
                 } else {
                     break;
                 }
             }
-            self.consume().should_be(&Token::RightParen);
+            self.consume().should_be(TokenType::RightParen);
             let new_base = Box::new(FunctionExpression { expr: base, params });
             self.call_and_access(new_base)?
         } else {
             base
         };
 
-        let index = if let Some(Token::LeftBrace) = self.current() {
+        let index = if let Some(TokenType::LeftBrace) = self.current().unwrap_type() {
             self.advance();
             let index_expr = self.expression()?;
-            self.consume().should_be(&Token::RightBrace);
+            self.consume().should_be(TokenType::RightBrace);
 
             let new_base = Box::new(IndexExpression {
                 expr: call,
@@ -329,10 +330,10 @@ impl Parser {
             call
         };
 
-        if let Some(Token::Dot) = self.current() {
+        if let Some(TokenType::Dot) = self.current().unwrap_type() {
             self.advance();
-            match self.consume() {
-                Some(Token::Identifier(ident)) => {
+            match self.consume().unwrap_type() {
+                Some(TokenType::Identifier(ident)) => {
                     let new_base = Box::new(AccessExpression {
                         expr: index,
                         field: ident.to_owned(),

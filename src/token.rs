@@ -1,5 +1,7 @@
+use crate::parser::ParserError;
+
 #[derive(PartialEq, Clone, Debug)]
-pub enum Token {
+pub enum TokenType {
     Identifier(String),
     Number(f64),
     String(String),
@@ -40,6 +42,13 @@ pub enum Token {
     Nothing,
 }
 
+#[derive(Clone, Debug)]
+pub struct Token {
+    pub tokenType: TokenType,
+    pub line: usize,
+    pub col: usize
+}
+
 pub struct Tokens {
     input: Vec<Token>,
     index: usize,
@@ -78,18 +87,47 @@ impl Tokens {
     }
 }
 
-pub trait Should<T> {
-    fn should_be(&self, other: T);
+pub trait TokenTrait {
+    fn should_be(&self, other: TokenType) -> Result<(), ParserError>;
+    fn might_be(&self, other: TokenType) -> Option<()>;
+    fn unwrap_type(&self) -> Option<TokenType>;
+
 }
 
-impl Should<&Token> for Option<&Token> {
-    fn should_be(&self, other: &Token) {
+impl TokenTrait for Option<&Token> {
+    fn should_be(&self, other: TokenType) -> Result<(), ParserError> {
         if let Some(t) = self {
-            if *t != other {
-                panic!("Expected {:?}, got {:?}", t, other);
+            if t.tokenType != other {
+                // panic!("Expected {:?}, got {:?}", t, other);
+                return Err(ParserError)
             }
         } else {
-            panic!("Expected {:?}, was None", other);
+            // panic!("Expected {:?}, was None", other);
+            return Err(ParserError)
+        }
+
+        Ok(())
+    }
+
+    fn might_be(&self, other: TokenType) -> Option<()> {
+        if let Some(t) = self {
+            if t.tokenType != other {
+                // panic!("Expected {:?}, got {:?}", t, other);
+                return None;
+            }
+        } else {
+            // panic!("Expected {:?}, was None", other);
+            return None;
+        }
+
+        Some(())
+    }
+
+    fn unwrap_type(&self) -> Option<TokenType> {
+        if let Some(t) = self {
+            Some(t.tokenType.clone())
+        } else {
+            None
         }
     }
 }

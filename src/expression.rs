@@ -1,7 +1,7 @@
 use crate::function::*;
 use crate::interpreter::Interpreter;
 use crate::object::*;
-use crate::token::Token;
+use crate::token::{Token, TokenType};
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
@@ -41,34 +41,34 @@ impl ScriptValue {
     pub fn numeric(&self, other: ScriptValue, operator: Token) -> ScriptValue {
         match (self, &other) {
             (ScriptValue::Number(left), ScriptValue::Number(right)) => {
-                let result = match operator {
-                    Token::Plus => left + right,
-                    Token::Minus => left - right,
-                    Token::Star => left * right,
-                    Token::Slash => left / right,
+                let result = match operator.tokenType {
+                    TokenType::Plus => left + right,
+                    TokenType::Minus => left - right,
+                    TokenType::Star => left * right,
+                    TokenType::Slash => left / right,
                     _ => panic!("Impossible addition"),
                 };
 
                 ScriptValue::Number(result)
             }
-            _ => panic!("Cannot {:?} {:?} and {:?}", operator, self, other),
+            _ => panic!("Cannot {:?} {:?} and {:?}", operator.tokenType, self, other),
         }
     }
 
     pub fn boolean(&self, other: ScriptValue, operator: Token) -> ScriptValue {
         let result = match (self, &other) {
-            (ScriptValue::Number(left), ScriptValue::Number(right)) => match operator {
-                Token::Equals => left == right,
-                Token::NotEquals => left != right,
-                Token::Lesser => left < right,
-                Token::Greater => left > right,
-                Token::EqLesser => left <= right,
-                Token::EqGreater => left >= right,
+            (ScriptValue::Number(left), ScriptValue::Number(right)) => match operator.tokenType {
+                TokenType::Equals => left == right,
+                TokenType::NotEquals => left != right,
+                TokenType::Lesser => left < right,
+                TokenType::Greater => left > right,
+                TokenType::EqLesser => left <= right,
+                TokenType::EqGreater => left >= right,
                 _ => panic!("Impossible boolean operation"),
             },
-            (ScriptValue::Boolean(left), ScriptValue::Boolean(right)) => match operator {
-                Token::Equals => left == right,
-                Token::NotEquals => left != right,
+            (ScriptValue::Boolean(left), ScriptValue::Boolean(right)) => match operator.tokenType {
+                TokenType::Equals => left == right,
+                TokenType::NotEquals => left != right,
                 _ => panic!("Impossible boolean operation"),
             },
             _ => panic!("Cannot compare {:?} and {:?}", self, other),

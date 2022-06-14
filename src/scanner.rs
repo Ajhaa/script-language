@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::token::{Token,TokenType};
 
 use std::array;
 use std::collections::HashMap;
@@ -10,7 +10,7 @@ pub struct Scanner<'a> {
     line: usize,
     input: Peekable<IntoIter<char>>,
     tokens: Vec<Token>,
-    keywords: HashMap<&'a str, Token>,
+    keywords: HashMap<&'a str, TokenType>,
 }
 
 impl<'a> Scanner<'a> {
@@ -21,15 +21,15 @@ impl<'a> Scanner<'a> {
             tokens: Vec::new(),
             input: chars.into_iter().peekable(),
             keywords: HashMap::<_, _>::from_iter(array::IntoIter::new([
-                ("var", Token::Var),
-                ("if", Token::If),
-                ("else", Token::Else),
-                ("fn", Token::Func),
-                ("while", Token::While),
-                ("true", Token::Boolean(true)),
-                ("false", Token::Boolean(false)),
-                ("null", Token::None),
-                ("return", Token::Return),
+                ("var", TokenType::Var),
+                ("if", TokenType::If),
+                ("else", TokenType::Else),
+                ("fn", TokenType::Func),
+                ("while", TokenType::While),
+                ("true", TokenType::Boolean(true)),
+                ("false", TokenType::Boolean(false)),
+                ("null", TokenType::None),
+                ("return", TokenType::Return),
             ])),
         }
     }
@@ -42,7 +42,7 @@ impl<'a> Scanner<'a> {
         self.input.next()
     }
 
-    fn match_or(&mut self, should: char, result: Token, default: Token) -> Token {
+    fn match_or(&mut self, should: char, result: TokenType, default: TokenType) -> TokenType {
         if let Some(token) = self.peek() {
             if token == &should {
                 self.consume();
@@ -69,44 +69,44 @@ impl<'a> Scanner<'a> {
         let next = self.input.next().unwrap();
 
         let token = match next {
-            '+' => Token::Plus,
-            '-' => Token::Minus,
-            '*' => Token::Star,
-            '/' => Token::Slash,
-            '(' => Token::LeftParen,
-            ')' => Token::RightParen,
-            '{' => Token::LeftBracket,
-            '}' => Token::RightBracket,
-            '[' => Token::LeftBrace,
-            ']' => Token::RightBrace,
-            ',' => Token::Comma,
-            '.' => Token::Dot,
-            '=' => self.match_or('=', Token::Equals, Token::Assign),
-            '<' => self.match_or('=', Token::EqLesser, Token::Lesser),
-            '>' => self.match_or('=', Token::EqGreater, Token::Greater),
-            '!' => self.match_or('=', Token::NotEquals, Token::Not),
-            '&' => self.match_or('&', Token::And, Token::BitAnd),
-            '|' => self.match_or('|', Token::Or, Token::BitOr),
+            '+' => TokenType::Plus,
+            '-' => TokenType::Minus,
+            '*' => TokenType::Star,
+            '/' => TokenType::Slash,
+            '(' => TokenType::LeftParen,
+            ')' => TokenType::RightParen,
+            '{' => TokenType::LeftBracket,
+            '}' => TokenType::RightBracket,
+            '[' => TokenType::LeftBrace,
+            ']' => TokenType::RightBrace,
+            ',' => TokenType::Comma,
+            '.' => TokenType::Dot,
+            '=' => self.match_or('=', TokenType::Equals, TokenType::Assign),
+            '<' => self.match_or('=', TokenType::EqLesser, TokenType::Lesser),
+            '>' => self.match_or('=', TokenType::EqGreater, TokenType::Greater),
+            '!' => self.match_or('=', TokenType::NotEquals, TokenType::Not),
+            '&' => self.match_or('&', TokenType::And, TokenType::BitAnd),
+            '|' => self.match_or('|', TokenType::Or, TokenType::BitOr),
             //'\n' => Token::LineBreak,
             'A'..='Z' | 'a'..='z' | '_' => self.word(next),
             '0'..='9' => self.number(next),
             '"' => self.string(),
             '\n' => {
                 self.line += 1;
-                Token::Nothing
+                TokenType::Nothing
             },
-            ' ' | '\r' => Token::Nothing,
+            ' ' | '\r' => TokenType::Nothing,
             _ => panic!("Unexpected {} at line {}", next, self.line),
         };
 
-        if let Token::Nothing = token {
+        if let TokenType::Nothing = token {
             None
         } else {
-            Some(token)
+            Some(Token { tokenType: token, line: self.line, col: 0 })
         }
     }
 
-    fn string(&mut self) -> Token {
+    fn string(&mut self) -> TokenType {
         let mut s = String::new();
 
         while let Some(c) = self.input.next() {
@@ -117,10 +117,10 @@ impl<'a> Scanner<'a> {
             s.push(c);
         }
 
-        Token::String(s)
+        TokenType::String(s)
     }
 
-    fn word(&mut self, first: char) -> Token {
+    fn word(&mut self, first: char) -> TokenType {
         let mut s = String::from(first);
 
         while let Some(c) = self.input.peek() {
@@ -133,11 +133,11 @@ impl<'a> Scanner<'a> {
         if let Some(keyword) = self.keywords.get(&*s) {
             keyword.clone()
         } else {
-            Token::Identifier(s)
+            TokenType::Identifier(s)
         }
     }
 
-    fn number(&mut self, first: char) -> Token {
+    fn number(&mut self, first: char) -> TokenType {
         let mut s = String::from(first);
 
         while let Some(c) = self.input.peek() {
@@ -147,6 +147,6 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        Token::Number(s.parse().unwrap())
+        TokenType::Number(s.parse().unwrap())
     }
 }
