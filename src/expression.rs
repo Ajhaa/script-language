@@ -70,6 +70,8 @@ impl ScriptValue {
             (ScriptValue::Boolean(left), ScriptValue::Boolean(right)) => match operator.token_type {
                 TokenType::Equals => left == right,
                 TokenType::NotEquals => left != right,
+                TokenType::And => *left && *right,
+                TokenType::Or => *left || *right,
                 _ => panic!("Impossible boolean operation"),
             },
             _ => panic!("Cannot compare {:?} and {:?}", self, other),

@@ -192,6 +192,8 @@ impl Parser {
                 TokenType::Lesser => (),
                 TokenType::EqGreater => (),
                 TokenType::EqLesser => (),
+                TokenType::And => (),
+                TokenType::Or => (),
                 _ => return Ok(left),
             }
 
@@ -267,6 +269,38 @@ impl Parser {
             TokenType::String(string) => Box::new(ScriptValue::String(Rc::new(RefCell::new(
                 string.to_owned(),
             )))),
+            // These two are very hack-y
+            TokenType::Minus => {
+                let operator = next.clone();
+                let expr = self.factor()?;
+                let zero = Box::new(ScriptValue::Number(0.0));
+
+                Box::new(
+                    AdditionExpression {
+                        left: zero,
+                        right: expr,
+                        operator
+                    }
+                )
+            },
+            TokenType::Not => {
+                let operator = Token {
+                    token_type: TokenType::Equals,
+                    line: next.line,
+                    col: next.col
+                };
+
+                let expr = self.factor()?;
+                let false_val = Box::new(ScriptValue::Boolean(false));
+
+                Box::new(
+                    ConditionExpression {
+                        left: expr,
+                        right: false_val,
+                        operator
+                    }
+                )
+            }
             TokenType::Boolean(b) => Box::new(ScriptValue::Boolean(*b)),
             TokenType::None => Box::new(ScriptValue::None),
             TokenType::Identifier(identifier) => {

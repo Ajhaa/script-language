@@ -1,3 +1,7 @@
+boolean operators correct assiocivity
+Improve objects, make custom objects
+Remove all panic!
+Scanner errors, not panics
 Check all clone
 Make a object pretty printer
 Clean up parser methods

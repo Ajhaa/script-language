@@ -17,7 +17,7 @@ pub fn create_builtins(env: &mut Environment) {
     env.create_internal_function("List", vec!["size"], |inpr| {
         let size = match inpr.env.get("size") {
             Some(ScriptValue::Number(n)) => n as usize,
-            Some(other) => panic!("Not a size {:?}", other),
+            Some(other) => return Err(InterpreterError::other(&other, "Not a size")),
             None => 0,
         };
 
